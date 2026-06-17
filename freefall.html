@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>자유낙하 시뮬레이션</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0d0d1a;
+  color: #eee;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px;
+  min-height: 100vh;
+}
+h1 { font-size: 1.4rem; letter-spacing: 3px; margin-bottom: 18px; color: #d0d0ff; }
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.toggle-group {
+  display: flex;
+  background: #12122a;
+  border-radius: 30px;
+  padding: 4px;
+  border: 1px solid #2a2a4a;
+}
+.mode-btn {
+  padding: 8px 22px;
+  border: none;
+  border-radius: 24px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  background: transparent;
+  color: #777;
+  transition: all 0.25s;
+  font-weight: 600;
+}
+.mode-btn.active { background: #3535cc; color: #fff; box-shadow: 0 0 12px rgba(53,53,204,0.5); }
+.btn {
+  padding: 8px 22px;
+  border: none;
+  border-radius: 24px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+#btnStart { background: #27ae60; color: #fff; }
+#btnStart:hover { background: #2ecc71; }
+#btnReset { background: #8e44ad; color: #fff; }
+#btnReset:hover { background: #9b59b6; }
+canvas { border-radius: 14px; border: 1px solid #2a2a4a; display: block; }
+.info-panel {
+  margin-top: 14px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.obj-card {
+  background: #12122a;
+  border: 1px solid #2a2a4a;
+  border-radius: 12px;
+  padding: 12px 18px;
+  min-width: 135px;
+  text-align: center;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.obj-card.landed { border-color: #27ae60; box-shadow: 0 0 10px rgba(39,174,96,0.3); }
+.card-label { font-size: 0.78rem; color: #888; margin-bottom: 6px; }
+.card-vel { font-size: 1.1rem; font-weight: bold; color: #7ec8e3; }
+.card-time { font-size: 0.82rem; color: #666; margin-top: 5px; }
+.card-time.hit { color: #2ecc71; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h1>🔬 자유낙하 시뮬레이션</h1>
+
+<div class="controls">
+  <div class="toggle-group">
+    <button class="mode-btn active" id="btnVacuum">🌌 진공</button>
+    <button class="mode-btn" id="btnAir">💨 공기저항</button>
+  </div>
+  <button class="btn" id="btnStart">▶ 시작</button>
+  <button class="btn" id="btnReset">↺ 초기화</button>
+</div>
+
+<canvas id="canvas" width="560" height="540"></canvas>
+
+<div class="info-panel">
+  <div class="obj-card" id="card0">
+    <div class="card-label">⚪ 흰 공 (5 kg)</div>
+    <div class="card-vel" id="vel0">0.00 m/s</div>
+    <div class="card-time" id="time0">낙하 대기</div>
+  </div>
+  <div class="obj-card" id="card1">
+    <div class="card-label">⚫ 검은 공 (0.5 kg)</div>
+    <div class="card-vel" id="vel1">0.00 m/s</div>
+    <div class="card-time" id="time1">낙하 대기</div>
+  </div>
+  <div class="obj-card" id="card2">
+    <div class="card-label">🪶 깃털 (3 g)</div>
+    <div class="card-vel" id="vel2">0.00 m/s</div>
+    <div class="card-time" id="time2">낙하 대기</div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+const G = 9.8;
+const RHO = 1.225;
+const SCALE = 24;
+const TOP_Y = 70;
+const GROUND_Y = 510;
+const DROP_H = (GROUND_Y - TOP_Y) / SCALE; // ~18.3 m
+
+let mode = 'vacuum';
+let running = false;
+let elapsed = 0;
+let lastTs = null;
+let rafId = null;
+let resultMsg = '';
+
+// Stars for vacuum background
+const stars = Array.from({ length: 90 }, () => ({
+  x: Math.random() * 560,
+  y: Math.random() * 540,
+  r: Math.random() * 1.4 + 0.3,
+  a: Math.random() * 0.5 + 0.5
+}));
+
+function makeObjects() {
+  return [
+    {
+      label: '흰 공', sub: '5 kg',
+      mass: 5, Cd: 0.47, area: Math.PI * 0.12 * 0.12,
+      radius: 20, isLight: true,
+      x: 130, y_m: 0, v: 0,
+      landed: false, landTime: null, type: 'ball'
+    },
+    {
+      label: '검은 공', sub: '0.5 kg',
+      mass: 0.5, Cd: 0.47, area: Math.PI * 0.09 * 0.09,
+      radius: 15, isLight: false,
+      x: 280, y_m: 0, v: 0,
+      landed: false, landTime: null, type: 'ball'
+    },
+    {
+      label: '깃털', sub: '3 g',
+      mass: 0.003, Cd: 1.3, area: 0.006,
+      x: 430, y_m: 0, v: 0,
+      landed: false, landTime: null, type: 'feather'
+    }
+  ];
+}
+
+let objs = makeObjects();
+
+// --- Physics ---
+function step(dt) {
+  elapsed += dt;
+  objs.forEach(obj => {
+    if (obj.landed) return;
+    let a = G;
+    if (mode === 'air') {
+      const drag = 0.5 * RHO * obj.Cd * obj.area * obj.v * obj.v;
+      a = Math.max(0, G - drag / obj.mass);
+    }
+    obj.v += a * dt;
+    obj.y_m += obj.v * dt;
+    if (obj.y_m >= DROP_H) {
+      obj.y_m = DROP_H;
+      obj.landed = true;
+      obj.landTime = elapsed;
+    }
+  });
+}
+
+// --- Draw helpers ---
+function drawBackground() {
+  if (mode === 'vacuum') {
+    const grad = ctx.createLinearGradient(0, 0, 0, 540);
+    grad.addColorStop(0, '#03030f');
+    grad.addColorStop(1, '#0a0a22');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 560, 540);
+    stars.forEach(s => {
+      ctx.globalAlpha = s.a;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+  } else {
+    const grad = ctx.createLinearGradient(0, 0, 0, 540);
+    grad.addColorStop(0, '#5ba3d9');
+    grad.addColorStop(0.65, '#a8d4f0');
+    grad.addColorStop(1, '#c8e8f8');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 560, 540);
+    drawCloud(70, 110, 0.7);
+    drawCloud(370, 75, 0.55);
+    drawCloud(460, 185, 0.45);
+  }
+}
+
+function drawCloud(x, y, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = 'white';
+  [[0,0,22],[18,-8,17],[36,0,19],[18,10,15]].forEach(([dx,dy,r]) => {
+    ctx.beginPath(); ctx.arc(x+dx, y+dy, r, 0, Math.PI*2); ctx.fill();
+  });
+  ctx.restore();
+}
+
+function drawGround() {
+  if (mode === 'vacuum') {
+    ctx.fillStyle = '#111';
+    ctx.fillRect(0, GROUND_Y, 560, 540 - GROUND_Y);
+    ctx.strokeStyle = '#393939';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, GROUND_Y); ctx.lineTo(560, GROUND_Y); ctx.stroke();
+    ctx.fillStyle = '#444';
+  } else {
+    const gGrad = ctx.createLinearGradient(0, GROUND_Y, 0, 540);
+    gGrad.addColorStop(0, '#8B6914');
+    gGrad.addColorStop(1, '#5a4010');
+    ctx.fillStyle = gGrad;
+    ctx.fillRect(0, GROUND_Y, 560, 540 - GROUND_Y);
+    ctx.strokeStyle = '#6b4f12';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, GROUND_Y); ctx.lineTo(560, GROUND_Y); ctx.stroke();
+    ctx.fillStyle = '#a07840';
+  }
+  ctx.font = '11px Segoe UI';
+  ctx.textAlign = 'left';
+  ctx.fillText(`낙하 높이: ${DROP_H.toFixed(1)} m`, 10, GROUND_Y + 17);
+}
+
+function drawBall(obj) {
+  const py = TOP_Y + obj.y_m * SCALE;
+
+  // Landing shadow
+  if (obj.landed) {
+    ctx.save();
+    ctx.globalAlpha = 0.2;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(obj.x, GROUND_Y + 4, obj.radius * 0.85, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Ball gradient
+  const grd = ctx.createRadialGradient(
+    obj.x - obj.radius * 0.35, py - obj.radius * 0.35, 2,
+    obj.x, py, obj.radius
+  );
+  if (obj.isLight) {
+    grd.addColorStop(0, '#ffffff');
+    grd.addColorStop(0.5, '#d8d8d8');
+    grd.addColorStop(1, '#888');
+  } else {
+    grd.addColorStop(0, '#666');
+    grd.addColorStop(0.5, '#1a1a1a');
+    grd.addColorStop(1, '#000');
+  }
+  ctx.beginPath();
+  ctx.arc(obj.x, py, obj.radius, 0, Math.PI * 2);
+  ctx.fillStyle = grd;
+  ctx.fill();
+  ctx.strokeStyle = obj.isLight ? '#aaa' : '#333';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Column label at top
+  const labelColor = mode === 'vacuum' ? '#bbb' : '#333';
+  ctx.fillStyle = labelColor;
+  ctx.font = 'bold 12px Segoe UI';
+  ctx.textAlign = 'center';
+  ctx.fillText(obj.label, obj.x, TOP_Y - 28);
+  ctx.font = '11px Segoe UI';
+  ctx.fillStyle = mode === 'vacuum' ? '#888' : '#555';
+  ctx.fillText(obj.sub, obj.x, TOP_Y - 14);
+}
+
+function drawFeather(obj) {
+  const py = TOP_Y + obj.y_m * SCALE;
+
+  ctx.save();
+  ctx.translate(obj.x, py);
+
+  // Sway in air mode
+  const sway = (mode === 'air' && running)
+    ? Math.sin(elapsed * 2.2 + 1.5) * 0.18
+    : 0;
+  ctx.rotate(sway);
+
+  // Central quill
+  ctx.strokeStyle = '#c8b84a';
+  ctx.lineWidth = 1.5;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(0, -22);
+  ctx.lineTo(0, 22);
+  ctx.stroke();
+
+  // Barbs
+  for (let i = -19; i <= 19; i += 3) {
+    const spread = (1 - (Math.abs(i) / 22)) * 13;
+    ctx.strokeStyle = 'rgba(245, 238, 200, 0.85)';
+    ctx.lineWidth = 0.9;
+    ctx.beginPath();
+    ctx.moveTo(0, i);
+    ctx.quadraticCurveTo(-spread * 0.4, i - 2, -spread, i + 3);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, i);
+    ctx.quadraticCurveTo(spread * 0.4, i - 2, spread, i + 3);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+
+  // Column label
+  const labelColor = mode === 'vacuum' ? '#bbb' : '#333';
+  ctx.fillStyle = labelColor;
+  ctx.font = 'bold 12px Segoe UI';
+  ctx.textAlign = 'center';
+  ctx.fillText(obj.label, obj.x, TOP_Y - 28);
+  ctx.font = '11px Segoe UI';
+  ctx.fillStyle = mode === 'vacuum' ? '#888' : '#555';
+  ctx.fillText(obj.sub, obj.x, TOP_Y - 14);
+}
+
+function drawHUD() {
+  // Timer
+  const tc = mode === 'vacuum' ? 'rgba(200,200,255,0.9)' : 'rgba(0,0,60,0.7)';
+  ctx.fillStyle = tc;
+  ctx.font = 'bold 17px Segoe UI';
+  ctx.textAlign = 'right';
+  ctx.fillText(`t = ${elapsed.toFixed(2)} s`, 548, 30);
+
+  // Result message
+  if (resultMsg) {
+    ctx.font = 'bold 14px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = mode === 'vacuum' ? 'rgba(100,255,150,0.95)' : 'rgba(0,100,0,0.9)';
+    ctx.fillText(resultMsg, 280, GROUND_Y - 10);
+  }
+}
+
+function render() {
+  ctx.clearRect(0, 0, 560, 540);
+  drawBackground();
+  drawGround();
+  objs.forEach(obj => obj.type === 'ball' ? drawBall(obj) : drawFeather(obj));
+  if (running || elapsed > 0) drawHUD();
+}
+
+// --- UI panel ---
+function updateUI() {
+  objs.forEach((obj, i) => {
+    document.getElementById('vel' + i).textContent = obj.v.toFixed(2) + ' m/s';
+    const timeEl = document.getElementById('time' + i);
+    const card = document.getElementById('card' + i);
+    if (obj.landed) {
+      timeEl.textContent = `착지: ${obj.landTime.toFixed(2)} s`;
+      timeEl.className = 'card-time hit';
+      card.classList.add('landed');
+    } else if (running) {
+      timeEl.textContent = '낙하 중...';
+      timeEl.className = 'card-time';
+    } else {
+      timeEl.textContent = '낙하 대기';
+      timeEl.className = 'card-time';
+    }
+  });
+}
+
+function buildResult() {
+  const landed = objs.filter(o => o.landed).sort((a, b) => a.landTime - b.landTime);
+  if (landed.length < objs.length) return;
+  const times = objs.map(o => o.landTime);
+  const allSame = times.every(t => Math.abs(t - times[0]) < 0.05);
+  if (allSame) {
+    resultMsg = '✅ 모두 동시에 착지! (갈릴레오의 법칙)';
+  } else {
+    const order = [...objs].sort((a, b) => a.landTime - b.landTime);
+    resultMsg = `🏁 ${order[0].label} → ${order[1].label} → ${order[2].label} 순서로 착지`;
+  }
+}
+
+// --- Animation loop ---
+function loop(ts) {
+  if (lastTs === null) lastTs = ts;
+  const dt = Math.min((ts - lastTs) / 1000, 0.05);
+  lastTs = ts;
+
+  step(dt);
+  buildResult();
+  render();
+  updateUI();
+
+  if (objs.every(o => o.landed)) {
+    running = false;
+    document.getElementById('btnStart').textContent = '▶ 시작';
+    return;
+  }
+  rafId = requestAnimationFrame(loop);
+}
+
+// --- Controls ---
+document.getElementById('btnVacuum').addEventListener('click', () => {
+  if (running) return;
+  mode = 'vacuum';
+  document.getElementById('btnVacuum').classList.add('active');
+  document.getElementById('btnAir').classList.remove('active');
+  reset();
+});
+
+document.getElementById('btnAir').addEventListener('click', () => {
+  if (running) return;
+  mode = 'air';
+  document.getElementById('btnAir').classList.add('active');
+  document.getElementById('btnVacuum').classList.remove('active');
+  reset();
+});
+
+document.getElementById('btnStart').addEventListener('click', () => {
+  if (objs.every(o => o.landed)) reset();
+  running = !running;
+  if (running) {
+    document.getElementById('btnStart').textContent = '⏸ 일시정지';
+    lastTs = null;
+    rafId = requestAnimationFrame(loop);
+  } else {
+    document.getElementById('btnStart').textContent = '▶ 재개';
+    if (rafId) cancelAnimationFrame(rafId);
+  }
+});
+
+document.getElementById('btnReset').addEventListener('click', reset);
+
+function reset() {
+  if (rafId) cancelAnimationFrame(rafId);
+  running = false;
+  elapsed = 0;
+  lastTs = null;
+  resultMsg = '';
+  objs = makeObjects();
+  document.getElementById('btnStart').textContent = '▶ 시작';
+  document.querySelectorAll('.obj-card').forEach(c => c.classList.remove('landed'));
+  render();
+  updateUI();
+}
+
+reset();
+</script>
+</body>
+</html>
