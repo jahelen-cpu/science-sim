@@ -66,7 +66,14 @@ body {
 #handCanvas.active {
   filter: drop-shadow(0 0 10px #FF6B9D) drop-shadow(0 0 4px #FF6B9D);
 }
-.hand-sub { font-size: 11px; color: #666; text-align: center; }
+.hand-sub {
+  font-size: 15px;
+  font-weight: 700;
+  color: #FFB6C1;
+  text-align: center;
+  text-shadow: 0 0 12px rgba(255,182,193,0.7);
+  letter-spacing: 0.3px;
+}
 .param-disp {
   font-size: 15px;
   font-weight: 700;
@@ -88,9 +95,18 @@ body {
 .slider-hd {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   font-size: 12px;
   color: #aaa;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
+}
+#fLbl, #dLbl {
+  font-size: 30px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 0 12px rgba(255,107,157,1), 0 0 4px rgba(255,107,157,0.6);
+  letter-spacing: 0.5px;
+  line-height: 1;
 }
 input[type=range] {
   width: 100%;
@@ -157,7 +173,7 @@ input[type=range]::-webkit-slider-thumb {
   <div class="slider-warn" id="sliderWarn"></div>
 
   <div class="p-div"></div>
-  <canvas id="speedoCanvas" width="240" height="140"></canvas>
+  <canvas id="speedoCanvas" width="290" height="170"></canvas>
   <div class="p-div"></div>
 
   <button id="resetBtn">↺ 초기화</button>
@@ -394,51 +410,62 @@ function drawBigHand(cpx, gy, t) {
 //  속력 계기판
 // ══════════════════════════════════════
 function drawSpeedo(speed) {
-  const W=240,H=140,cx=W/2,cy=H*0.82,R=63;
+  const W=290,H=170,cx=W/2,cy=H*0.82,R=76;
   const a0=Math.PI*0.75, a1=Math.PI*2.25, span=a1-a0;
   const ratio=Math.min(speed/SPD_MAX,1);
   spc.clearRect(0,0,W,H);
 
+  // 배경 트랙
   spc.beginPath(); spc.arc(cx,cy,R,a0,a1);
-  spc.strokeStyle='rgba(255,255,255,0.1)'; spc.lineWidth=14; spc.lineCap='round'; spc.stroke();
+  spc.strokeStyle='rgba(255,255,255,0.13)'; spc.lineWidth=18; spc.lineCap='round'; spc.stroke();
 
+  // 속도 채움 호
   if(ratio>0.001){
     const grd=spc.createLinearGradient(cx-R,cy,cx+R,cy);
     grd.addColorStop(0,'#4ECDC4'); grd.addColorStop(0.5,'#FFD700'); grd.addColorStop(1,'#FF6B6B');
     spc.beginPath(); spc.arc(cx,cy,R,a0,a0+span*ratio);
-    spc.strokeStyle=grd; spc.lineWidth=14; spc.lineCap='round'; spc.stroke();
+    spc.strokeStyle=grd; spc.lineWidth=18; spc.lineCap='round'; spc.stroke();
   }
 
+  // 눈금
   for(let i=0;i<=10;i++){
     const a=a0+(i/10)*span, major=i%2===0;
     spc.beginPath();
-    spc.moveTo(cx+Math.cos(a)*(R+2),cy+Math.sin(a)*(R+2));
-    spc.lineTo(cx+Math.cos(a)*(R-(major?18:10)),cy+Math.sin(a)*(R-(major?18:10)));
-    spc.strokeStyle=major?'rgba(255,255,255,0.6)':'rgba(255,255,255,0.25)';
-    spc.lineWidth=major?2:1; spc.stroke();
+    spc.moveTo(cx+Math.cos(a)*(R+3),cy+Math.sin(a)*(R+3));
+    spc.lineTo(cx+Math.cos(a)*(R-(major?22:12)),cy+Math.sin(a)*(R-(major?22:12)));
+    spc.strokeStyle=major?'rgba(255,255,255,0.85)':'rgba(255,255,255,0.35)';
+    spc.lineWidth=major?2.5:1.2; spc.stroke();
     if(major){
-      const lr=R-27; spc.fillStyle='rgba(255,255,255,0.55)'; spc.font='9px Arial';
+      const lr=R-34;
+      spc.fillStyle='rgba(255,255,255,0.85)'; spc.font='bold 11px Arial';
       spc.textAlign='center'; spc.textBaseline='middle';
       spc.fillText(Math.round(i/10*SPD_MAX), cx+Math.cos(a)*lr, cy+Math.sin(a)*lr);
     }
   }
 
+  // 바늘
   const na=a0+span*ratio;
   spc.save(); spc.translate(cx,cy); spc.rotate(na);
-  spc.shadowColor='rgba(0,0,0,0.4)'; spc.shadowBlur=6;
-  spc.beginPath(); spc.moveTo(-3,6); spc.lineTo(0,-(R-16)); spc.lineTo(3,6); spc.closePath();
+  spc.shadowColor='#FF6B9D'; spc.shadowBlur=10;
+  spc.beginPath(); spc.moveTo(-4,8); spc.lineTo(0,-(R-18)); spc.lineTo(4,8); spc.closePath();
   spc.fillStyle='#FF6B9D'; spc.fill(); spc.restore();
 
-  spc.beginPath(); spc.arc(cx,cy,8,0,Math.PI*2); spc.fillStyle='#222'; spc.fill();
-  spc.beginPath(); spc.arc(cx,cy,4,0,Math.PI*2); spc.fillStyle='#FF6B9D'; spc.fill();
+  // 중심 허브
+  spc.beginPath(); spc.arc(cx,cy,11,0,Math.PI*2); spc.fillStyle='#1a1a2e'; spc.fill();
+  spc.beginPath(); spc.arc(cx,cy,6,0,Math.PI*2);
+  spc.fillStyle='#FF6B9D';
+  spc.shadowColor='#FF6B9D'; spc.shadowBlur=8; spc.fill(); spc.shadowBlur=0;
 
-  spc.fillStyle='white'; spc.font='bold 18px Arial';
+  // 속력 숫자 (크고 또렷하게)
+  spc.fillStyle='white'; spc.font='bold 24px Arial';
   spc.textAlign='center'; spc.textBaseline='middle';
+  spc.shadowColor='rgba(255,255,255,0.4)'; spc.shadowBlur=6;
   spc.fillText(speed.toFixed(1),cx,cy-R*0.38);
-  spc.fillStyle='rgba(255,255,255,0.45)'; spc.font='10px Arial';
-  spc.fillText('m/s',cx,cy-R*0.38+18);
-  spc.fillStyle='rgba(255,255,255,0.35)'; spc.font='11px Arial';
-  spc.textBaseline='top'; spc.fillText('속   력  계기판',cx,10);
+  spc.shadowBlur=0;
+  spc.fillStyle='rgba(255,255,255,0.6)'; spc.font='bold 12px Arial';
+  spc.fillText('m/s',cx,cy-R*0.38+22);
+  spc.fillStyle='rgba(255,255,255,0.5)'; spc.font='bold 12px Arial';
+  spc.textBaseline='top'; spc.fillText('속   력  계기판',cx,8);
 }
 
 // ══════════════════════════════════════
