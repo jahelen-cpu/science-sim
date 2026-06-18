@@ -15,35 +15,43 @@ body {
   padding: 20px 16px 40px; color: #eee;
 }
 h1 { font-size: 24px; font-weight: 700; margin-bottom: 5px; text-shadow: 0 2px 8px rgba(0,0,0,.5); }
-.guide { font-size: 13px; color: #8ab4cc; margin-bottom: 14px; }
-.guide strong { color: #4dd0e1; }
+.guide { font-size: 20px; font-weight: 700; color: #c8e8ff; margin-bottom: 14px; letter-spacing: 0.2px; text-shadow: 0 1px 6px rgba(0,0,0,.4); }
+.guide strong { color: #ADFF2F; text-shadow: 0 0 10px rgba(173,255,47,0.7); }
 
 .app-layout { display: flex; gap: 18px; align-items: flex-start; }
 .main-area  { display: flex; flex-direction: column; align-items: stretch; }
 #canvas { display: block; max-width: 100%; border-radius: 14px; box-shadow: 0 6px 32px rgba(0,0,0,.6); cursor: none; }
 
 .sidebar {
-  width: 180px; min-width: 180px;
+  width: 220px; min-width: 220px;
   background: rgba(255,255,255,0.07); border-radius: 14px;
-  padding: 16px 14px; display: flex; flex-direction: column; gap: 14px;
+  padding: 18px 16px; display: flex; flex-direction: column; gap: 16px;
 }
-.sb-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: #5a8aaa; text-align: center; margin-bottom: 2px; }
+.sb-label { font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #8ab8cc; text-align: center; margin-bottom: 4px; }
 .sb-divider { border: none; border-top: 1px solid rgba(255,255,255,0.1); }
 
 .mag-box {
-  border: 2px solid rgba(255,255,255,0.22); border-radius: 12px; padding: 14px 10px 10px;
+  border: 2px solid rgba(255,255,255,0.22); border-radius: 12px; padding: 14px 10px 12px;
   text-align: center; background: rgba(255,255,255,0.05); transition: all 0.25s; user-select: none; cursor: pointer;
 }
 .mag-box:hover:not(.in-use) { border-color: rgba(255,255,255,0.4); }
-.mag-box.active { border: 2px solid #4dd0e1; background: rgba(77,208,225,0.13); box-shadow: 0 0 14px rgba(77,208,225,0.35); }
-.mag-box.in-use { border: 2px dashed rgba(77,208,225,0.45); background: rgba(77,208,225,0.05); opacity: 0.5; }
-.mag-icon { font-size: 44px; line-height: 1; display: block; margin-bottom: 8px; transition: transform 0.3s; }
+.mag-box.active {
+  border: 2px solid #ADFF2F;
+  background: rgba(173,255,47,0.15);
+  box-shadow: 0 0 22px rgba(173,255,47,0.65), 0 0 6px rgba(173,255,47,0.4);
+}
+.mag-box.in-use {
+  border: 2px dashed rgba(173,255,47,0.5);
+  background: rgba(173,255,47,0.06);
+  opacity: 0.55;
+}
+.mag-icon { font-size: 48px; line-height: 1; display: block; margin-bottom: 8px; transition: transform 0.3s; }
 .mag-box:not(.active) .mag-icon { transform: rotate(-15deg); }
 .mag-box.active .mag-icon { transform: rotate(0deg); }
-.mag-tag { font-size: 11px; font-weight: 600; color: #90b8cc; letter-spacing: 0.3px; }
-.mag-box.active .mag-tag { color: #4dd0e1; }
+.mag-tag { font-size: 20px; font-weight: 700; color: #90b8cc; letter-spacing: 0.3px; }
+.mag-box.active .mag-tag { color: #ADFF2F; text-shadow: 0 0 8px rgba(173,255,47,0.8); }
 
-.sidebar button { width: 100%; padding: 10px 0; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.15s, transform 0.1s; }
+.sidebar button { width: 100%; padding: 12px 0; border: none; border-radius: 8px; font-size: 22px; font-weight: 700; cursor: pointer; transition: background 0.15s, transform 0.1s; }
 .sidebar button:active { transform: scale(0.97); }
 #toggleBtn { background: #2196F3; color: #fff; }
 #toggleBtn:hover { background: #1976D2; }
@@ -56,15 +64,15 @@ h1 { font-size: 24px; font-weight: 700; margin-bottom: 5px; text-shadow: 0 2px 8
 #resetBtn { background: #546E7A; color: #fff; }
 #resetBtn:hover { background: #37474F; }
 
-.mass-ctrl { display: flex; flex-direction: column; gap: 7px; }
-.mass-ctrl label { font-size: 11px; font-weight: 700; letter-spacing: 0.8px; color: #5a8aaa; text-transform: uppercase; }
-#ms { width: 100%; accent-color: #4dd0e1; cursor: pointer; }
-#massVal { font-size: 15px; font-weight: 700; color: #4dd0e1; text-align: center; }
+.mass-ctrl { display: flex; flex-direction: column; gap: 8px; }
+.mass-ctrl label { font-size: 20px; font-weight: 700; letter-spacing: 0.8px; color: #8ab8cc; text-transform: uppercase; }
+#ms { width: 100%; accent-color: #ADFF2F; cursor: pointer; height: 6px; }
+#massVal { font-size: 26px; font-weight: 700; color: #ADFF2F; text-align: center; text-shadow: 0 0 8px rgba(173,255,47,0.6); }
 </style>
 </head>
 <body>
 <h1>역학적 에너지 전환과 보존</h1>
-<p class="guide">오른쪽 <strong>돋보기</strong>를 클릭해 활성화한 뒤 캔버스 위를 움직이세요</p>
+<p class="guide">👉 오른쪽 <strong>돋보기</strong>를 클릭해 활성화한 뒤 캔버스 위를 움직이세요!</p>
 
 <div class="app-layout">
   <div class="main-area">
@@ -211,7 +219,7 @@ function pauseTrain() {
 function resetTrain() {
   isMoving=false; trainSpeed=0; pausedSpeed=0; hasPaused=false;
   if(animId){cancelAnimationFrame(animId);animId=null;}
-  trainIdx=START_IDX; selP=null;
+  trainIdx=START_IDX; selP=null; particles=[];
   setToggleState('start'); render();
 }
 function snapToNearest() {
@@ -431,6 +439,124 @@ function drawCircles() {
   });
 }
 
+/* ── 파티클 시스템 ── */
+let particles = [];
+
+function emitParticles(px, py, intensity) {
+  /* 확률적으로 1프레임에 0~1개만 생성 */
+  if (Math.random() > intensity * 0.55) return;
+  const angle = Math.random() * Math.PI * 2;
+  const spd   = (0.4 + Math.random() * 1.2) * intensity;
+  const cols  = ['#FFE000','#FF9900','#FFFFFF','#FFCC00'];
+  particles.push({
+    x:  px + (Math.random()-0.5)*14,
+    y:  py - 6 + (Math.random()-0.5)*10,
+    vx: Math.cos(angle)*spd,
+    vy: Math.sin(angle)*spd - 0.8,
+    life: 1.0,
+    decay: 0.06 + Math.random()*0.06,
+    size:  0.8 + Math.random()*1.2*intensity,
+    isLine: Math.random() < 0.4,
+    color: cols[Math.floor(Math.random()*cols.length)],
+  });
+  if (particles.length > 25) particles.splice(0, particles.length - 25);
+}
+
+function updateAndDrawParticles() {
+  particles = particles.filter(p => p.life > 0.02);
+  for (const p of particles) {
+    p.x  += p.vx;
+    p.y  += p.vy;
+    p.vy += 0.18;   // 중력
+    p.vx *= 0.97;   // 공기저항
+    p.life -= p.decay;
+
+    ctx.save();
+    ctx.globalAlpha = p.life * p.life;  // 끝에서 빠르게 페이드
+    if (p.isLine) {
+      ctx.strokeStyle = p.color;
+      ctx.lineWidth   = p.size * 0.7;
+      ctx.lineCap     = 'round';
+      ctx.shadowBlur  = 1; ctx.shadowColor = p.color;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x - p.vx*3.5, p.y - p.vy*3.5);
+      ctx.stroke();
+    } else {
+      ctx.fillStyle  = p.color;
+      ctx.shadowBlur = 1; ctx.shadowColor = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+/* ── 속력 말풍선 ── */
+function drawScream() {
+  if (!isMoving || trainSpeed < 11) return;
+  const idx = Math.min(trainIdx, CURVE.length-1);
+  const p = CURVE[idx];
+  const intensity = Math.min(1, (trainSpeed - 11) / 9);
+  const wobble = Math.sin(Date.now() / 65) * 5 * intensity;
+  const scale  = 0.75 + intensity * 0.5;
+
+  /* 파티클 방출 */
+  emitParticles(p.x, p.y - 15, intensity);
+
+  let text;
+  if (trainSpeed > 18)      text = '으아아악!!!';
+  else if (trainSpeed > 15) text = '으아아!!';
+  else                      text = '아악!';
+
+  const bx = p.x - 44 + wobble;
+  const by = p.y - 72 - intensity * 18;
+
+  ctx.save();
+  ctx.font = `bold ${Math.round(14 * scale)}px Arial`;
+  const tw = ctx.measureText(text).width + 20;
+  const th = Math.round(30 * scale);
+
+  /* 배경 말풍선 */
+  ctx.shadowBlur = 12 * intensity;
+  ctx.shadowColor = 'rgba(255,220,0,0.9)';
+  ctx.fillStyle = `rgba(255,252,160,${0.85 + intensity * 0.15})`;
+  ctx.strokeStyle = `rgba(220,80,0,0.95)`;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.roundRect(bx - tw/2, by - th/2, tw, th, 7); ctx.fill(); ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  /* 꼬리 */
+  ctx.fillStyle = `rgba(255,252,160,0.95)`;
+  ctx.strokeStyle = `rgba(220,80,0,0.9)`;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(bx + 6, by + th/2);
+  ctx.lineTo(bx + 16, by + th/2 + 12);
+  ctx.lineTo(bx + 24, by + th/2);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  /* 텍스트 */
+  ctx.fillStyle = '#B52000';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, bx, by);
+
+  /* 고속일 때 주변 느낌표/별 */
+  if (intensity > 0.45) {
+    const t = Date.now();
+    const eff = [['!!', -36, -26], ['★', 30, -22], ['!!', -38, 4], ['⚡', 28, 6]];
+    ctx.font = `bold ${Math.round((12 + intensity * 9) * scale)}px Arial`;
+    eff.forEach(([c, dx, dy]) => {
+      const jx = Math.sin(t / 90 + dx) * 4 * intensity;
+      const jy = Math.cos(t / 110 + dy) * 3 * intensity;
+      ctx.fillStyle = `rgba(255,${Math.round(60 + intensity*60)},0,${0.7 + intensity*0.3})`;
+      ctx.fillText(c, p.x + dx + jx, p.y - 28 + dy + jy);
+    });
+  }
+  ctx.textBaseline = 'alphabetic'; ctx.restore();
+}
+
 function drawMagnifier(x,y,active) {
   ctx.save();
   const r=active?21:15;
@@ -538,7 +664,7 @@ function drawCursorBar() {
 function render() {
   ctx.clearRect(0,0,W,H);
   drawBg(); drawRuler(); drawCols(); drawTrack(); drawArrows();
-  drawTrain();
+  drawTrain(); updateAndDrawParticles(); drawScream();
   drawPausedSpeed();
   if (analysisMode && cursorOnCanvas) drawCursorBar();
   if (cursorOnCanvas) drawMagnifier(cursorX, cursorY, analysisMode);
