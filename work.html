@@ -127,7 +127,6 @@ input[type=range]::-webkit-slider-thumb {
   cursor: pointer;
 }
 
-#speedoCanvas { display: block; }
 
 #resetBtn {
   width: 100%;
@@ -173,8 +172,6 @@ input[type=range]::-webkit-slider-thumb {
   <div class="slider-warn" id="sliderWarn"></div>
 
   <div class="p-div"></div>
-  <canvas id="speedoCanvas" width="290" height="170"></canvas>
-  <div class="p-div"></div>
 
   <button id="resetBtn">↺ 초기화</button>
 </div>
@@ -218,8 +215,6 @@ const simCv  = document.getElementById('simCanvas');
 const sc     = simCv.getContext('2d');
 const handCv = document.getElementById('handCanvas');
 const hc     = handCv.getContext('2d');
-const spdCv  = document.getElementById('speedoCanvas');
-const spc    = spdCv.getContext('2d');
 
 function resizeSim() {
   const a = document.getElementById('simArea');
@@ -267,7 +262,6 @@ function resetSim() {
   handCv.classList.remove('active');
   document.getElementById('handSub').textContent = '손을 클릭하여 시작';
   drawHandPanel(false);
-  drawSpeedo(0);
 }
 
 handCv.addEventListener('click', handleHandClick);
@@ -409,63 +403,76 @@ function drawBigHand(cpx, gy, t) {
 // ══════════════════════════════════════
 //  속력 계기판
 // ══════════════════════════════════════
-function drawSpeedo(speed) {
-  const W=290,H=170,cx=W/2,cy=H*0.82,R=76;
+function drawSpeedo(speed, cpx, gy) {
+  const R=68, cx=cpx, cy=gy-138;
   const a0=Math.PI*0.75, a1=Math.PI*2.25, span=a1-a0;
   const ratio=Math.min(speed/SPD_MAX,1);
-  spc.clearRect(0,0,W,H);
+
+  // 어두운 원형 배경
+  sc.save();
+  sc.globalAlpha=0.82;
+  sc.beginPath(); sc.arc(cx,cy,R+20,0,Math.PI*2);
+  sc.fillStyle='#1a1a2e'; sc.fill();
+  sc.restore();
+
+  // 테두리
+  sc.beginPath(); sc.arc(cx,cy,R+20,0,Math.PI*2);
+  sc.strokeStyle='rgba(255,107,157,0.35)'; sc.lineWidth=1.5; sc.stroke();
 
   // 배경 트랙
-  spc.beginPath(); spc.arc(cx,cy,R,a0,a1);
-  spc.strokeStyle='rgba(255,255,255,0.13)'; spc.lineWidth=18; spc.lineCap='round'; spc.stroke();
+  sc.beginPath(); sc.arc(cx,cy,R,a0,a1);
+  sc.strokeStyle='rgba(255,255,255,0.13)'; sc.lineWidth=17; sc.lineCap='round'; sc.stroke();
 
   // 속도 채움 호
   if(ratio>0.001){
-    const grd=spc.createLinearGradient(cx-R,cy,cx+R,cy);
+    const grd=sc.createLinearGradient(cx-R,cy,cx+R,cy);
     grd.addColorStop(0,'#4ECDC4'); grd.addColorStop(0.5,'#FFD700'); grd.addColorStop(1,'#FF6B6B');
-    spc.beginPath(); spc.arc(cx,cy,R,a0,a0+span*ratio);
-    spc.strokeStyle=grd; spc.lineWidth=18; spc.lineCap='round'; spc.stroke();
+    sc.beginPath(); sc.arc(cx,cy,R,a0,a0+span*ratio);
+    sc.strokeStyle=grd; sc.lineWidth=17; sc.lineCap='round'; sc.stroke();
   }
 
   // 눈금
   for(let i=0;i<=10;i++){
     const a=a0+(i/10)*span, major=i%2===0;
-    spc.beginPath();
-    spc.moveTo(cx+Math.cos(a)*(R+3),cy+Math.sin(a)*(R+3));
-    spc.lineTo(cx+Math.cos(a)*(R-(major?22:12)),cy+Math.sin(a)*(R-(major?22:12)));
-    spc.strokeStyle=major?'rgba(255,255,255,0.85)':'rgba(255,255,255,0.35)';
-    spc.lineWidth=major?2.5:1.2; spc.stroke();
+    sc.beginPath();
+    sc.moveTo(cx+Math.cos(a)*(R+3), cy+Math.sin(a)*(R+3));
+    sc.lineTo(cx+Math.cos(a)*(R-(major?21:11)), cy+Math.sin(a)*(R-(major?21:11)));
+    sc.strokeStyle=major?'rgba(255,255,255,0.9)':'rgba(255,255,255,0.38)';
+    sc.lineWidth=major?2.5:1.2; sc.stroke();
     if(major){
-      const lr=R-34;
-      spc.fillStyle='rgba(255,255,255,0.85)'; spc.font='bold 11px Arial';
-      spc.textAlign='center'; spc.textBaseline='middle';
-      spc.fillText(Math.round(i/10*SPD_MAX), cx+Math.cos(a)*lr, cy+Math.sin(a)*lr);
+      const lr=R-32;
+      sc.fillStyle='rgba(255,255,255,0.9)'; sc.font='bold 10px Arial';
+      sc.textAlign='center'; sc.textBaseline='middle';
+      sc.fillText(Math.round(i/10*SPD_MAX), cx+Math.cos(a)*lr, cy+Math.sin(a)*lr);
     }
   }
 
   // 바늘
   const na=a0+span*ratio;
-  spc.save(); spc.translate(cx,cy); spc.rotate(na);
-  spc.shadowColor='#FF6B9D'; spc.shadowBlur=10;
-  spc.beginPath(); spc.moveTo(-4,8); spc.lineTo(0,-(R-18)); spc.lineTo(4,8); spc.closePath();
-  spc.fillStyle='#FF6B9D'; spc.fill(); spc.restore();
+  sc.save(); sc.translate(cx,cy); sc.rotate(na);
+  sc.shadowColor='#FF6B9D'; sc.shadowBlur=10;
+  sc.beginPath(); sc.moveTo(-4,7); sc.lineTo(0,-(R-17)); sc.lineTo(4,7); sc.closePath();
+  sc.fillStyle='#FF6B9D'; sc.fill(); sc.restore();
 
   // 중심 허브
-  spc.beginPath(); spc.arc(cx,cy,11,0,Math.PI*2); spc.fillStyle='#1a1a2e'; spc.fill();
-  spc.beginPath(); spc.arc(cx,cy,6,0,Math.PI*2);
-  spc.fillStyle='#FF6B9D';
-  spc.shadowColor='#FF6B9D'; spc.shadowBlur=8; spc.fill(); spc.shadowBlur=0;
+  sc.beginPath(); sc.arc(cx,cy,10,0,Math.PI*2); sc.fillStyle='#1a1a2e'; sc.fill();
+  sc.beginPath(); sc.arc(cx,cy,5,0,Math.PI*2);
+  sc.shadowColor='#FF6B9D'; sc.shadowBlur=8;
+  sc.fillStyle='#FF6B9D'; sc.fill(); sc.shadowBlur=0;
 
-  // 속력 숫자 (크고 또렷하게)
-  spc.fillStyle='white'; spc.font='bold 24px Arial';
-  spc.textAlign='center'; spc.textBaseline='middle';
-  spc.shadowColor='rgba(255,255,255,0.4)'; spc.shadowBlur=6;
-  spc.fillText(speed.toFixed(1),cx,cy-R*0.38);
-  spc.shadowBlur=0;
-  spc.fillStyle='rgba(255,255,255,0.6)'; spc.font='bold 12px Arial';
-  spc.fillText('m/s',cx,cy-R*0.38+22);
-  spc.fillStyle='rgba(255,255,255,0.5)'; spc.font='bold 12px Arial';
-  spc.textBaseline='top'; spc.fillText('속   력  계기판',cx,8);
+  // 속력 숫자
+  sc.fillStyle='white'; sc.font='bold 22px Arial';
+  sc.textAlign='center'; sc.textBaseline='middle';
+  sc.shadowColor='rgba(255,255,255,0.5)'; sc.shadowBlur=6;
+  sc.fillText(speed.toFixed(1), cx, cy-R*0.38);
+  sc.shadowBlur=0;
+  sc.fillStyle='rgba(255,255,255,0.65)'; sc.font='bold 11px Arial';
+  sc.fillText('m/s', cx, cy-R*0.38+20);
+
+  // 제목
+  sc.fillStyle='rgba(255,255,255,0.55)'; sc.font='bold 11px Arial';
+  sc.textBaseline='middle';
+  sc.fillText('속력 계기판', cx, cy-R-10);
 }
 
 // ══════════════════════════════════════
@@ -800,11 +807,10 @@ function loop(t) {
   drawTable(sim.work, ke);
   drawSpeedBox(sim.v);
 
-  drawSpeedo(sim.v);
+  drawSpeedo(sim.v, cpx, gy);
   requestAnimationFrame(loop);
 }
 
-drawSpeedo(0);
 requestAnimationFrame(loop);
 </script>
 </body>
