@@ -60,11 +60,21 @@ body {
 #handCanvas {
   display: block;
   cursor: pointer;
-  border-radius: 50%;
-  transition: filter 0.25s;
+  border-radius: 18px;
+  border: 2.5px solid rgba(255,107,157,0.55);
+  background: rgba(255,107,157,0.07);
+  box-shadow: 0 0 0 4px rgba(255,107,157,0.08), inset 0 1px 0 rgba(255,255,255,0.06);
+  transition: filter 0.25s, border-color 0.25s, box-shadow 0.25s;
+}
+#handCanvas:hover {
+  border-color: rgba(255,107,157,0.9);
+  box-shadow: 0 0 0 6px rgba(255,107,157,0.15), 0 0 18px rgba(255,107,157,0.25);
 }
 #handCanvas.active {
-  filter: drop-shadow(0 0 10px #FF6B9D) drop-shadow(0 0 4px #FF6B9D);
+  border-color: #FF6B9D;
+  background: rgba(255,107,157,0.13);
+  box-shadow: 0 0 0 6px rgba(255,107,157,0.2), 0 0 24px rgba(255,107,157,0.4);
+  filter: drop-shadow(0 0 8px #FF6B9D);
 }
 .hand-sub {
   font-size: 15px;
