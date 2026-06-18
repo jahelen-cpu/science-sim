@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Work</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
+  background: #111;
+}
+
+#simArea {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  min-width: 0;
+}
+#simCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── 제어판 ── */
+#panel {
+  width: 268px;
+  flex-shrink: 0;
+  background: #1a1a2e;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 14px;
+  gap: 11px;
+  overflow-y: auto;
+  color: white;
+}
+.p-title {
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 8px;
+  color: #FFB6C1;
+  text-shadow: 0 0 18px rgba(255,182,193,0.55);
+}
+.p-div { width:100%; height:1px; background:rgba(255,255,255,0.1); }
+
+.hand-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+#handCanvas {
+  display: block;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: filter 0.25s;
+}
+#handCanvas.active {
+  filter: drop-shadow(0 0 10px #FF6B9D) drop-shadow(0 0 4px #FF6B9D);
+}
+.hand-sub { font-size: 11px; color: #666; text-align: center; }
+.param-disp {
+  font-size: 15px;
+  font-weight: 700;
+  color: #FFB6C1;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+.slider-wrap { width: 100%; }
+.slider-warn {
+  font-size: 11px;
+  font-weight: 700;
+  color: #FF6B9D;
+  text-align: center;
+  min-height: 15px;
+  margin-top: 5px;
+  letter-spacing: 0.3px;
+}
+.slider-hd {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #aaa;
+  margin-bottom: 6px;
+}
+input[type=range] {
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 5px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #FF6B9D, #FFB6C1);
+  outline: none;
+  cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 0 6px rgba(255,107,157,0.85);
+  cursor: pointer;
+}
+
+#speedoCanvas { display: block; }
+
+#resetBtn {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #FF6B9D, #FFB6C1);
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+#resetBtn:hover { transform: translateY(-1px); box-shadow: 0 5px 15px rgba(255,107,157,0.4); }
+#resetBtn:active { transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<div id="simArea"><canvas id="simCanvas"></canvas></div>
+
+<div id="panel">
+  <div class="p-title">WORK</div>
+  <div class="p-div"></div>
+
+  <div class="hand-section">
+    <canvas id="handCanvas" width="92" height="104"></canvas>
+    <div class="hand-sub" id="handSub">손을 클릭하여 시작</div>
+    <div class="param-disp" id="paramDisp">F = 10 N &nbsp;·&nbsp; d = 5 m</div>
+  </div>
+
+  <div class="slider-wrap">
+    <div class="slider-hd"><span>힘 (Force)</span><span id="fLbl">10 N</span></div>
+    <input type="range" id="forceSlider" min="1" max="40" value="10" step="1">
+  </div>
+
+  <div class="slider-wrap">
+    <div class="slider-hd"><span>이동 거리 (Distance)</span><span id="dLbl">5 m</span></div>
+    <input type="range" id="distSlider" min="1" max="20" value="5" step="1">
+  </div>
+  <div class="slider-warn" id="sliderWarn"></div>
+
+  <div class="p-div"></div>
+  <canvas id="speedoCanvas" width="240" height="140"></canvas>
+  <div class="p-div"></div>
+
+  <button id="resetBtn">↺ 초기화</button>
+</div>
+
+<script>
+// ── roundRect 폴리필 ──
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r){
+    const n = typeof r==='number'?[r,r,r,r]:Array.isArray(r)?(
+      r.length===4?r:r.length===3?[r[0],r[1],r[2],r[1]]:
+      r.length===2?[r[0],r[1],r[0],r[1]]:[r[0],r[0],r[0],r[0]]):
+      [0,0,0,0];
+    const [tl,tr,br,bl]=n;
+    this.moveTo(x+tl,y); this.lineTo(x+w-tr,y);
+    this.arcTo(x+w,y,x+w,y+tr,tr); this.lineTo(x+w,y+h-br);
+    this.arcTo(x+w,y+h,x+w-br,y+h,br); this.lineTo(x+bl,y+h);
+    this.arcTo(x,y+h,x,y+h-bl,bl); this.lineTo(x,y+tl);
+    this.arcTo(x,y,x+tl,y,tl); this.closePath();
+  };
+}
+
+// ══════════════════════════════════════
+//  상수
+// ══════════════════════════════════════
+const MASS     = 1;
+const PX_PER_M = 60;
+const SIM_SPD  = 0.28;
+const SPD_MAX  = 60;
+const WHEEL_R  = 14;
+
+// ══════════════════════════════════════
+//  상태
+// ══════════════════════════════════════
+const sim = { x:0, v:0, pushX:0, work:0, phase:'idle', paused:false };
+
+function getF() { return Number(document.getElementById('forceSlider').value); }
+function getD() { return Number(document.getElementById('distSlider').value); }
+
+// ── 캔버스 ──
+const simCv  = document.getElementById('simCanvas');
+const sc     = simCv.getContext('2d');
+const handCv = document.getElementById('handCanvas');
+const hc     = handCv.getContext('2d');
+const spdCv  = document.getElementById('speedoCanvas');
+const spc    = spdCv.getContext('2d');
+
+function resizeSim() {
+  const a = document.getElementById('simArea');
+  simCv.width = a.clientWidth; simCv.height = a.clientHeight;
+}
+resizeSim();
+window.addEventListener('resize', resizeSim);
+function GY() { return simCv.height * 0.62; }
+
+// ══════════════════════════════════════
+//  이벤트
+// ══════════════════════════════════════
+
+// 시뮬레이션 시작 시 슬라이더 값을 고정 (실행 중 변경 방지)
+let simF = 10, simD = 5;
+
+function handleHandClick() {
+  if (sim.phase === 'idle') {
+    // 시작
+    simF = getF();
+    simD = getD();
+    sim.phase = 'pushing';
+    sim.paused = false;
+    handCv.classList.add('active');
+    drawHandPanel(true);
+    document.getElementById('handSub').textContent = '힘 적용 중... (클릭: 일시정지)';
+  } else if (sim.paused) {
+    // 재개
+    sim.paused = false;
+    handCv.classList.add('active');
+    drawHandPanel(true);
+    const txt = sim.phase === 'pushing' ? '힘 적용 중... (클릭: 일시정지)' : '등속 운동 중 (클릭: 일시정지)';
+    document.getElementById('handSub').textContent = txt;
+  } else {
+    // 일시 정지
+    sim.paused = true;
+    handCv.classList.remove('active');
+    drawHandPanel(false);
+    document.getElementById('handSub').textContent = '⏸ 일시 정지  (클릭: 계속)';
+  }
+}
+
+function resetSim() {
+  sim.x=0; sim.v=0; sim.pushX=0; sim.work=0; sim.phase='idle'; sim.paused=false;
+  handCv.classList.remove('active');
+  document.getElementById('handSub').textContent = '손을 클릭하여 시작';
+  drawHandPanel(false);
+  drawSpeedo(0);
+}
+
+handCv.addEventListener('click', handleHandClick);
+document.getElementById('resetBtn').addEventListener('click', resetSim);
+
+function updateSliderLabels() {
+  const f = getF(), d = getD();
+  document.getElementById('fLbl').textContent = f + ' N';
+  document.getElementById('dLbl').textContent = d + ' m';
+  document.getElementById('paramDisp').textContent = 'F = '+f+' N  ·  d = '+d+' m';
+}
+function showSliderWarn() {
+  const el = document.getElementById('sliderWarn');
+  el.textContent = '⚠ 초기화 후 변경하세요';
+  clearTimeout(el._wt);
+  el._wt = setTimeout(function(){ el.textContent = ''; }, 2200);
+}
+
+document.getElementById('forceSlider').addEventListener('input', function() {
+  if (sim.phase !== 'idle') {
+    this.value = simF;
+    updateSliderLabels();
+    showSliderWarn();
+  } else {
+    updateSliderLabels();
+  }
+});
+document.getElementById('distSlider').addEventListener('input', function() {
+  if (sim.phase !== 'idle') {
+    this.value = simD;
+    updateSliderLabels();
+    showSliderWarn();
+  } else {
+    updateSliderLabels();
+  }
+});
+
+// ══════════════════════════════════════
+//  패널 손 그리기
+// ══════════════════════════════════════
+function drawHandPanel(active) {
+  const W=92, H=104;
+  hc.clearRect(0,0,W,H);
+  hc.save();
+  hc.translate(46, 58 + (active ? 4 : 0));
+  const skin='#FDCDB5', line='#C88858';
+
+  if(active){
+    const g=hc.createRadialGradient(0,0,4,0,0,36);
+    g.addColorStop(0,'rgba(255,107,157,0.32)'); g.addColorStop(1,'rgba(255,107,157,0)');
+    hc.beginPath(); hc.arc(0,0,36,0,Math.PI*2); hc.fillStyle=g; hc.fill();
+  }
+
+  // 손목
+  hc.beginPath(); hc.roundRect(-11,20,22,14,[0,0,7,7]);
+  hc.fillStyle=skin; hc.fill(); hc.strokeStyle=line; hc.lineWidth=1; hc.stroke();
+
+  // 손바닥
+  hc.beginPath(); hc.roundRect(-16,-8,32,28,8);
+  hc.fillStyle=skin; hc.fill(); hc.strokeStyle=line; hc.lineWidth=1.2; hc.stroke();
+
+  // 손가락 [x중심, 끝y, 너비] — 끝이 손바닥 위쪽(-8)에 맞닿음
+  [[-11,-32,7],[-4,-36,7.5],[4,-34,7],[12,-26,6]].forEach(function(f){
+    var h = -f[1] - 8;
+    hc.beginPath(); hc.roundRect(f[0]-f[2]/2, f[1], f[2], h, f[2]/2);
+    hc.fillStyle=skin; hc.fill(); hc.strokeStyle=line; hc.lineWidth=1; hc.stroke();
+  });
+
+  // 엄지
+  hc.save(); hc.translate(-18,2); hc.rotate(-0.5);
+  hc.beginPath(); hc.roundRect(-4,-15,9,18,4.5);
+  hc.fillStyle=skin; hc.fill(); hc.strokeStyle=line; hc.lineWidth=1; hc.stroke();
+  hc.restore();
+
+  hc.fillStyle=active?'#FF6B9D':'#FFB6C1';
+  hc.font='bold 11px Arial'; hc.textAlign='center'; hc.textBaseline='top';
+  hc.fillText('힘',0,36);
+  hc.restore();
+}
+drawHandPanel(false);
+
+// ══════════════════════════════════════
+//  캔버스 위 큰 손 그리기 (밀기 자세)
+// ══════════════════════════════════════
+function drawBigHand(cpx, gy, t) {
+  const bumperX = cpx - 64;
+  const centerY = gy - 22;
+  const pushAnim = 3 + 3 * Math.sin(t / 160);
+  const skin='#FDCDB5', line='#C08050';
+
+  sc.save();
+  sc.translate(bumperX + pushAnim, centerY);
+
+  // 그림자
+  sc.save(); sc.globalAlpha=0.12; sc.translate(4,5); _h('#999'); sc.restore();
+  // 실제 손
+  _h(skin);
+  sc.restore();
+
+  function _h(col) {
+    const real = col !== '#999';
+
+    // 팔뚝/손목 (왼쪽으로 뻗어나감)
+    sc.beginPath(); sc.roundRect(-192,-12,84,24,[10,0,0,10]);
+    sc.fillStyle=col; sc.fill();
+    if(real){sc.strokeStyle=line; sc.lineWidth=1.2; sc.stroke();}
+
+    // 손바닥
+    sc.beginPath(); sc.roundRect(-108,-24,62,48,[7,4,4,7]);
+    sc.fillStyle=col; sc.fill();
+    if(real){sc.strokeStyle=line; sc.lineWidth=1.5; sc.stroke();}
+
+    // 손가락 4개 — 끝이 x=0 (자동차 범퍼), 좌측으로 뻗음
+    // [fy중심, fw너비, fl길이]
+    [[-17,11,46],[-6,12,50],[5,11,46],[15,9,38]].forEach(function(f){
+      sc.beginPath(); sc.roundRect(-f[2], f[0]-f[1]/2, f[2], f[1], f[1]/2);
+      sc.fillStyle=col; sc.fill();
+      if(real){sc.strokeStyle=line; sc.lineWidth=1.1; sc.stroke();}
+    });
+
+    // 엄지 — 손바닥 상단에서 위쪽으로
+    sc.save(); sc.translate(-85,-24); sc.rotate(-1.0);
+    sc.beginPath(); sc.roundRect(-6,-22,13,24,6.5);
+    sc.fillStyle=col; sc.fill();
+    if(real){sc.strokeStyle=line; sc.lineWidth=1.1; sc.stroke();}
+    sc.restore();
+
+    // 마디 주름
+    if(real){
+      [[-17,46],[-6,50],[5,46],[15,38]].forEach(function(f){
+        sc.beginPath();
+        sc.moveTo(-f[1]*0.42, f[0]-4); sc.lineTo(-f[1]*0.42, f[0]+4);
+        sc.strokeStyle='rgba(170,100,60,0.2)'; sc.lineWidth=0.9; sc.stroke();
+      });
+    }
+  }
+}
+
+// ══════════════════════════════════════
+//  속력 계기판
+// ══════════════════════════════════════
+function drawSpeedo(speed) {
+  const W=240,H=140,cx=W/2,cy=H*0.82,R=63;
+  const a0=Math.PI*0.75, a1=Math.PI*2.25, span=a1-a0;
+  const ratio=Math.min(speed/SPD_MAX,1);
+  spc.clearRect(0,0,W,H);
+
+  spc.beginPath(); spc.arc(cx,cy,R,a0,a1);
+  spc.strokeStyle='rgba(255,255,255,0.1)'; spc.lineWidth=14; spc.lineCap='round'; spc.stroke();
+
+  if(ratio>0.001){
+    const grd=spc.createLinearGradient(cx-R,cy,cx+R,cy);
+    grd.addColorStop(0,'#4ECDC4'); grd.addColorStop(0.5,'#FFD700'); grd.addColorStop(1,'#FF6B6B');
+    spc.beginPath(); spc.arc(cx,cy,R,a0,a0+span*ratio);
+    spc.strokeStyle=grd; spc.lineWidth=14; spc.lineCap='round'; spc.stroke();
+  }
+
+  for(let i=0;i<=10;i++){
+    const a=a0+(i/10)*span, major=i%2===0;
+    spc.beginPath();
+    spc.moveTo(cx+Math.cos(a)*(R+2),cy+Math.sin(a)*(R+2));
+    spc.lineTo(cx+Math.cos(a)*(R-(major?18:10)),cy+Math.sin(a)*(R-(major?18:10)));
+    spc.strokeStyle=major?'rgba(255,255,255,0.6)':'rgba(255,255,255,0.25)';
+    spc.lineWidth=major?2:1; spc.stroke();
+    if(major){
+      const lr=R-27; spc.fillStyle='rgba(255,255,255,0.55)'; spc.font='9px Arial';
+      spc.textAlign='center'; spc.textBaseline='middle';
+      spc.fillText(Math.round(i/10*SPD_MAX), cx+Math.cos(a)*lr, cy+Math.sin(a)*lr);
+    }
+  }
+
+  const na=a0+span*ratio;
+  spc.save(); spc.translate(cx,cy); spc.rotate(na);
+  spc.shadowColor='rgba(0,0,0,0.4)'; spc.shadowBlur=6;
+  spc.beginPath(); spc.moveTo(-3,6); spc.lineTo(0,-(R-16)); spc.lineTo(3,6); spc.closePath();
+  spc.fillStyle='#FF6B9D'; spc.fill(); spc.restore();
+
+  spc.beginPath(); spc.arc(cx,cy,8,0,Math.PI*2); spc.fillStyle='#222'; spc.fill();
+  spc.beginPath(); spc.arc(cx,cy,4,0,Math.PI*2); spc.fillStyle='#FF6B9D'; spc.fill();
+
+  spc.fillStyle='white'; spc.font='bold 18px Arial';
+  spc.textAlign='center'; spc.textBaseline='middle';
+  spc.fillText(speed.toFixed(1),cx,cy-R*0.38);
+  spc.fillStyle='rgba(255,255,255,0.45)'; spc.font='10px Arial';
+  spc.fillText('m/s',cx,cy-R*0.38+18);
+  spc.fillStyle='rgba(255,255,255,0.35)'; spc.font='11px Arial';
+  spc.textBaseline='top'; spc.fillText('속   력  계기판',cx,10);
+}
+
+// ══════════════════════════════════════
+//  속력 박스 (표 아래, 다른 스타일)
+// ══════════════════════════════════════
+function drawSpeedBox(v) {
+  const tx=22, ty=262, TW=238, TH=84, R=12;
+  const gy = GY();
+  if(ty + TH > gy - 16) return;
+
+  // 그림자
+  sc.fillStyle='rgba(0,0,0,0.12)';
+  sc.beginPath(); sc.roundRect(tx+3,ty+3,TW,TH,R); sc.fill();
+
+  // 어두운 디지털 배경
+  sc.fillStyle='rgba(10,14,34,0.94)';
+  sc.beginPath(); sc.roundRect(tx,ty,TW,TH,R); sc.fill();
+  sc.strokeStyle='rgba(0,212,255,0.65)'; sc.lineWidth=2.5; sc.stroke();
+
+  // 라벨
+  sc.fillStyle='rgba(120,210,240,0.75)';
+  sc.font='bold 14px Arial'; sc.textAlign='center'; sc.textBaseline='top';
+  sc.fillText('속  력', tx+TW/2, ty+9);
+
+  // 속력 숫자 (형광 파랑, 글로우 효과)
+  sc.shadowColor='#00D4FF'; sc.shadowBlur=12;
+  sc.fillStyle='#00D4FF';
+  sc.font='bold 42px "Courier New", monospace';
+  sc.textAlign='center'; sc.textBaseline='middle';
+  sc.fillText(v.toFixed(2)+' m/s', tx+TW/2, ty+TH/2+9);
+  sc.shadowBlur=0;
+}
+
+// ══════════════════════════════════════
+//  배경
+// ══════════════════════════════════════
+function drawBackground(worldX) {
+  const w=simCv.width, h=simCv.height, gy=GY();
+
+  sc.fillStyle='#f8f9ff'; sc.fillRect(0,0,w,gy);
+  sc.fillStyle='#efefef'; sc.fillRect(0,gy,w,h-gy);
+  sc.beginPath(); sc.moveTo(0,gy); sc.lineTo(w,gy);
+  sc.strokeStyle='#d0d0d0'; sc.lineWidth=2; sc.stroke();
+
+  // 구름
+  [{bx:180,by:0.12,s:1},{bx:480,by:0.08,s:0.75},{bx:820,by:0.15,s:1.2},{bx:1200,by:0.09,s:0.9}]
+  .forEach(function(cd){
+    const px=((cd.bx-worldX*PX_PER_M*0.13)%(w+300)+w+300)%(w+300)-150;
+    const py=cd.by*gy, r=22*cd.s;
+    sc.save(); sc.globalAlpha=0.22; sc.fillStyle='#d8ddf0';
+    sc.beginPath();
+    sc.ellipse(px,py,r,r*0.5,0,0,Math.PI*2);
+    sc.ellipse(px-r*0.7,py+r*0.2,r*0.65,r*0.45,0,0,Math.PI*2);
+    sc.ellipse(px+r*0.75,py+r*0.1,r*0.7,r*0.48,0,0,Math.PI*2);
+    sc.fill(); sc.restore();
+  });
+
+  // 거리 눈금
+  const leftX=worldX-(w/2)/PX_PER_M;
+  const firstM=Math.floor(leftX);
+  sc.lineWidth=1; sc.font='10px Arial'; sc.textAlign='center';
+  for(let m=firstM-1; m<=firstM+Math.ceil(w/PX_PER_M)+2; m++){
+    if(m<0) continue;
+    const px=w/2+(m-worldX)*PX_PER_M;
+    if(px<-5||px>w+5) continue;
+    const major=m%5===0;
+    sc.beginPath(); sc.moveTo(px,gy+2); sc.lineTo(px,gy+2+(major?11:6));
+    sc.strokeStyle=major?'#aaa':'#ccc'; sc.stroke();
+    if(major){ sc.fillStyle='#999'; sc.fillText(m+'m',px,gy+24); }
+  }
+
+  // 출발선
+  const startPx=w/2-worldX*PX_PER_M;
+  if(startPx>-50&&startPx<w+50){
+    sc.save();
+    sc.beginPath(); sc.moveTo(startPx,gy-55); sc.lineTo(startPx,gy);
+    sc.strokeStyle='rgba(255,107,157,0.65)'; sc.lineWidth=1.5;
+    sc.setLineDash([4,4]); sc.stroke(); sc.setLineDash([]);
+    sc.fillStyle='rgba(255,107,157,0.85)'; sc.font='bold 11px Arial';
+    sc.textAlign=startPx<22?'left':'center';
+    sc.textBaseline='bottom';
+    sc.fillText('출발',Math.max(startPx,14),gy-58);
+    sc.restore();
+  }
+}
+
+// ══════════════════════════════════════
+//  힘 구간 표시
+// ══════════════════════════════════════
+function drawForceZone(worldX, targetD, phase) {
+  const w=simCv.width, gy=GY();
+  const zs=w/2-worldX*PX_PER_M;          // 구간 시작 (x=0)
+  const ze=w/2+(targetD-worldX)*PX_PER_M; // 구간 끝 (x=targetD)
+
+  const vl=Math.max(zs,0), vr=Math.min(ze,w);
+  if(vr>vl){
+    const alpha=phase==='cruising'?0.1:0.2;
+    sc.fillStyle=`rgba(255,182,193,${alpha})`;
+    sc.fillRect(vl,gy,vr-vl,35);
+  }
+
+  // 구간 끝 마커
+  if(ze>-10&&ze<w+10){
+    sc.save();
+    sc.beginPath(); sc.moveTo(ze,gy-65); sc.lineTo(ze,gy+35);
+    sc.strokeStyle='rgba(255,107,157,0.65)'; sc.lineWidth=1.5;
+    sc.setLineDash([5,4]); sc.stroke(); sc.setLineDash([]);
+    sc.fillStyle='rgba(255,107,157,0.85)'; sc.font='bold 11px Arial';
+    sc.textAlign='center'; sc.textBaseline='bottom';
+    sc.fillText('d = '+targetD+'m', ze, gy-68);
+    sc.restore();
+  }
+}
+
+// ══════════════════════════════════════
+//  캔버스 큰 표 (한 일 / 운동에너지)
+// ══════════════════════════════════════
+function drawTable(work, ke) {
+  const tx=22, ty=22, TW=238, TH=228, R=14;
+
+  // 그림자
+  sc.fillStyle='rgba(0,0,0,0.08)';
+  sc.beginPath(); sc.roundRect(tx+3,ty+4,TW,TH,R); sc.fill();
+
+  // 배경
+  sc.fillStyle='rgba(255,255,255,0.96)';
+  sc.beginPath(); sc.roundRect(tx,ty,TW,TH,R); sc.fill();
+  sc.strokeStyle='#FFB6C1'; sc.lineWidth=2.5; sc.stroke();
+
+  // 가로 구분선
+  sc.beginPath();
+  sc.moveTo(tx+16,ty+TH/2); sc.lineTo(tx+TW-16,ty+TH/2);
+  sc.strokeStyle='#FFE0E8'; sc.lineWidth=1.5; sc.stroke();
+
+  // ─ 상단: 한 일 ─
+  sc.textAlign='center';
+  sc.fillStyle='#444'; sc.font='bold 17px Arial';
+  sc.textBaseline='top';
+  sc.fillText('한  일', tx+TW/2, ty+12);
+
+  sc.fillStyle='#bbb'; sc.font='11px Arial';
+  sc.fillText('W = F × d', tx+TW/2, ty+33);
+
+  sc.fillStyle='#FF6B9D'; sc.font='bold 46px Arial';
+  sc.textBaseline='middle';
+  sc.fillText(work.toFixed(1)+' J', tx+TW/2, ty+TH/4+16);
+
+  // ─ 하단: 운동에너지 ─
+  const bot=ty+TH/2;
+  sc.fillStyle='#444'; sc.font='bold 17px Arial';
+  sc.textBaseline='top';
+  sc.fillText('운동에너지', tx+TW/2, bot+12);
+
+  sc.fillStyle='#bbb'; sc.font='11px Arial';
+  sc.fillText('Ek = ½mv²', tx+TW/2, bot+33);
+
+  sc.fillStyle='#5B7FCF'; sc.font='bold 46px Arial';
+  sc.textBaseline='middle';
+  sc.fillText(ke.toFixed(1)+' J', tx+TW/2, bot+TH/4+16);
+}
+
+// ══════════════════════════════════════
+//  자동차 그리기
+// ══════════════════════════════════════
+function drawCar(cpx, gy) {
+  sc.save();
+  sc.translate(cpx, gy);
+  const wAngle=(sim.x*PX_PER_M)/WHEEL_R;
+
+  // 그림자
+  sc.save(); sc.scale(1,0.2); sc.translate(4,WHEEL_R*4.5);
+  sc.beginPath(); sc.ellipse(0,0,68,14,0,0,Math.PI*2);
+  sc.fillStyle='rgba(0,0,0,0.06)'; sc.fill(); sc.restore();
+
+  function wheel(wx){
+    sc.save(); sc.translate(wx,-WHEEL_R);
+    sc.beginPath(); sc.arc(0,0,WHEEL_R,0,Math.PI*2);
+    sc.fillStyle='#242424'; sc.fill();
+    sc.save(); sc.rotate(wAngle);
+    for(let i=0;i<6;i++){
+      const a=(i/6)*Math.PI*2;
+      sc.beginPath(); sc.moveTo(Math.cos(a)*(WHEEL_R-4.5),Math.sin(a)*(WHEEL_R-4.5));
+      sc.lineTo(Math.cos(a)*(WHEEL_R-1),Math.sin(a)*(WHEEL_R-1));
+      sc.strokeStyle='rgba(255,255,255,0.11)'; sc.lineWidth=2; sc.stroke();
+    }
+    sc.restore();
+    sc.beginPath(); sc.arc(0,0,WHEEL_R*0.56,0,Math.PI*2);
+    sc.fillStyle='#ffbdcc'; sc.fill();
+    for(let i=0;i<5;i++){
+      const a=(i/5)*Math.PI*2;
+      sc.beginPath(); sc.arc(Math.cos(a)*(WHEEL_R*0.31),Math.sin(a)*(WHEEL_R*0.31),1.8,0,Math.PI*2);
+      sc.fillStyle='#c0808d'; sc.fill();
+    }
+    sc.beginPath(); sc.arc(0,0,2.5,0,Math.PI*2); sc.fillStyle='#888'; sc.fill();
+    sc.restore();
+  }
+  wheel(-36); wheel(36);
+
+  const BY=-WHEEL_R, BT=-43, CT=-67;
+
+  // 하부 차체
+  sc.beginPath();
+  sc.moveTo(-60,BY); sc.lineTo(-60,BT+5);
+  sc.quadraticCurveTo(-60,BT,-55,BT); sc.lineTo(55,BT);
+  sc.quadraticCurveTo(60,BT,60,BT+5); sc.lineTo(60,BY);
+  sc.closePath();
+  sc.fillStyle='#FFB6C1'; sc.fill();
+  sc.strokeStyle='#e090a0'; sc.lineWidth=1.5; sc.stroke();
+
+  // 캐빈
+  sc.beginPath();
+  sc.moveTo(-33,BT); sc.lineTo(-26,CT+7);
+  sc.quadraticCurveTo(-24,CT,-17,CT); sc.lineTo(17,CT);
+  sc.quadraticCurveTo(24,CT,26,CT+7); sc.lineTo(33,BT);
+  sc.closePath();
+  sc.fillStyle='#FF9EAE'; sc.fill();
+  sc.strokeStyle='#e090a0'; sc.lineWidth=1.5; sc.stroke();
+
+  // 앞 유리
+  sc.beginPath();
+  sc.moveTo(21,BT); sc.lineTo(23,CT+9); sc.lineTo(11,CT+2); sc.lineTo(9,BT);
+  sc.closePath(); sc.fillStyle='rgba(185,228,255,0.85)'; sc.fill();
+  sc.strokeStyle='#9abcdc'; sc.lineWidth=0.8; sc.stroke();
+
+  // 뒷 유리
+  sc.beginPath();
+  sc.moveTo(-21,BT); sc.lineTo(-23,CT+9); sc.lineTo(-11,CT+2); sc.lineTo(-9,BT);
+  sc.closePath(); sc.fillStyle='rgba(185,228,255,0.75)'; sc.fill();
+  sc.strokeStyle='#9abcdc'; sc.lineWidth=0.8; sc.stroke();
+
+  // 하이라이트
+  sc.beginPath(); sc.moveTo(-60,BT+9); sc.lineTo(60,BT+9);
+  sc.strokeStyle='rgba(255,255,255,0.42)'; sc.lineWidth=2; sc.stroke();
+
+  // 도어 구분 · 손잡이
+  sc.beginPath(); sc.moveTo(2,BY); sc.lineTo(2,BT);
+  sc.strokeStyle='rgba(200,130,145,0.38)'; sc.lineWidth=1; sc.stroke();
+  sc.beginPath(); sc.roundRect(6,BT+16,13,4,2);
+  sc.fillStyle='rgba(255,255,255,0.55)'; sc.fill();
+
+  // 헤드라이트
+  sc.beginPath(); sc.roundRect(50,BT+8,13,9,3);
+  sc.fillStyle='#FFFDE0'; sc.fill(); sc.strokeStyle='#ddd'; sc.lineWidth=0.5; sc.stroke();
+  if(sim.v>0.5){
+    const grd=sc.createRadialGradient(65,BT+12,0,65,BT+12,20);
+    grd.addColorStop(0,'rgba(255,250,200,0.32)'); grd.addColorStop(1,'rgba(255,250,200,0)');
+    sc.beginPath(); sc.ellipse(65,BT+12,20,12,0.1,0,Math.PI*2);
+    sc.fillStyle=grd; sc.fill();
+  }
+
+  // 후미등
+  sc.beginPath(); sc.roundRect(-63,BT+8,8,9,2);
+  sc.fillStyle=sim.phase==='pushing'?'#FF1133':'#BB3344'; sc.fill();
+
+  // 범퍼
+  sc.beginPath(); sc.roundRect(58,BT+18,6,12,[0,3,3,0]); sc.fillStyle='#e0e0e0'; sc.fill();
+  sc.beginPath(); sc.roundRect(-64,BT+18,6,12,[3,0,0,3]); sc.fillStyle='#e0e0e0'; sc.fill();
+
+  // 안테나
+  sc.beginPath(); sc.moveTo(-17,CT); sc.lineTo(-17,CT-14);
+  sc.strokeStyle='#bbb'; sc.lineWidth=1.1; sc.stroke();
+  sc.beginPath(); sc.arc(-17,CT-15,2.5,0,Math.PI*2);
+  sc.fillStyle='#FF6B9D'; sc.fill();
+
+  // ─ 차체에 질량 표기 ─
+  sc.fillStyle='rgba(100,45,55,0.78)';
+  sc.font='bold 13px Arial'; sc.textAlign='center'; sc.textBaseline='middle';
+  sc.fillText('m = 1 kg', 0, -34);
+
+  sc.restore();
+}
+
+// ══════════════════════════════════════
+//  속도 라인
+// ══════════════════════════════════════
+function drawSpeedLines(cpx, gy, v, t) {
+  const cnt=Math.min(7,Math.floor(v/1.5));
+  const alpha=Math.min(v/14,0.55);
+  for(let i=0;i<cnt;i++){
+    const offset=(t*(0.07+i*0.018))%55;
+    const x=cpx-80-i*7-offset, y=gy-14-i*6, len=16+i*6;
+    sc.beginPath(); sc.moveTo(x,y); sc.lineTo(x-len,y);
+    sc.strokeStyle=`rgba(255,182,193,${(alpha*(1-i/cnt)*0.9).toFixed(2)})`;
+    sc.lineWidth=1.5-i*0.08; sc.stroke();
+  }
+}
+
+// ══════════════════════════════════════
+//  메인 루프
+// ══════════════════════════════════════
+let prevT=null;
+
+function loop(t) {
+  const realDt=prevT?Math.min((t-prevT)/1000,0.05):0;
+  prevT=t;
+  const dt=realDt*SIM_SPD;
+
+  if(!sim.paused){
+    if(sim.phase==='pushing'){
+      const F=simF, D=simD;
+      const dx = sim.v*dt + 0.5*(F/MASS)*dt*dt;
+      const dActual = Math.min(dx, D - sim.pushX);
+      sim.pushX += dActual;
+      sim.work  += F * dActual;
+      sim.v      = Math.sqrt(2 * sim.work / MASS);
+      sim.x     += dActual;
+      if(sim.pushX >= D){
+        sim.phase='cruising';
+        handCv.classList.remove('active');
+        drawHandPanel(false);
+        document.getElementById('handSub').textContent='등속 운동 중 (클릭: 일시정지)';
+      }
+    } else if(sim.phase==='cruising'){
+      sim.x+=sim.v*dt;
+    }
+  }
+
+  const w=simCv.width, gy=GY(), cpx=w/2;
+  const ke=0.5*MASS*sim.v*sim.v; // sim.work와 항상 같음
+
+  sc.clearRect(0,0,w,simCv.height);
+  drawBackground(sim.x);
+  drawForceZone(sim.x, sim.phase==='idle'?getD():simD, sim.phase);
+
+  // 큰 손 (힘 적용 중일 때만)
+  if(sim.phase==='pushing') drawBigHand(cpx, gy, sim.paused ? 0 : t);
+
+  if(sim.v>0.8) drawSpeedLines(cpx,gy,sim.v,t);
+  drawCar(cpx,gy);
+
+  // 큰 표 (항상 표시)
+  drawTable(sim.work, ke);
+  drawSpeedBox(sim.v);
+
+  drawSpeedo(sim.v);
+  requestAnimationFrame(loop);
+}
+
+drawSpeedo(0);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
