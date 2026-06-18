@@ -594,9 +594,9 @@ function drawCursorBar() {
   const titleTxt= nearPt ? '지점 '+nearPt.id : 'h = '+h.toFixed(1)+' m';
 
   /* 차트 크기 */
-  const barW=28, maxH=110, gap=16, pad=16;
+  const barW=52, maxH=120, gap=24, pad=20;
   const chartW = 3*barW + 2*gap + 2*pad;
-  const titleH=28, valH=24, lbH=20, chartH = titleH + maxH + valH + lbH + 2*pad + 4;
+  const titleH=32, valH=36, lbH=28, chartH = titleH + maxH + valH + lbH + 2*pad + 4;
 
   /* 위치: 커서 오른쪽, 벗어나면 왼쪽 */
   let cx = cursorX + 44;
@@ -618,19 +618,19 @@ function drawCursorBar() {
   ctx.beginPath();ctx.roundRect(cx,cy,chartW,chartH,13);ctx.stroke();
 
   /* 제목 */
-  ctx.font='bold 17px Arial';ctx.fillStyle=borderC;ctx.textAlign='center';
-  ctx.fillText(titleTxt, cx+chartW/2, cy+pad+18);
+  ctx.font='bold 19px Arial';ctx.fillStyle=borderC;ctx.textAlign='center';
+  ctx.fillText(titleTxt, cx+chartW/2, cy+pad+20);
 
   /* 속력 (작은 서브 타이틀) */
-  ctx.font='13px Arial';ctx.fillStyle='#777';
-  ctx.fillText('v = '+v.toFixed(2)+' m/s', cx+chartW/2, cy+pad+titleH+2);
+  ctx.font='15px Arial';ctx.fillStyle='#777';
+  ctx.fillText('v = '+v.toFixed(2)+' m/s', cx+chartW/2, cy+pad+titleH+4);
 
   const barData=[
     {label:'위치',  val:PE,   c1:'#1565C0', c2:'#42A5F5', bg:'#DDEEFF'},
     {label:'운동',  val:KE,   c1:'#B71C1C', c2:'#EF5350', bg:'#FFECEC'},
     {label:'역학적',val:totE, c1:'#2E7D32', c2:'#66BB6A', bg:'#E6F5E8'},
   ];
-  const barTop = cy + pad + titleH + 12;
+  const barTop = cy + pad + titleH + 16;
 
   barData.forEach((bar,i)=>{
     const bx=cx+pad+i*(barW+gap);
@@ -649,13 +649,13 @@ function drawCursorBar() {
       ctx.beginPath();ctx.roundRect(bx,barTop+maxH-fh,barW,fh,6);ctx.fill();
     }
 
-    /* J 값 (두배 크게) */
-    ctx.font='bold 18px Arial';ctx.fillStyle=bar.c1;ctx.textAlign='center';
-    ctx.fillText(bar.val.toFixed(0)+'J', bx+barW/2, barTop+maxH+valH);
+    /* J 값 */
+    ctx.font='bold 20px Arial';ctx.fillStyle=bar.c1;ctx.textAlign='center';
+    ctx.fillText(bar.val.toFixed(0)+'J', bx+barW/2, barTop+maxH+valH-4);
 
     /* 라벨 */
-    ctx.font='bold 14px Arial';ctx.fillStyle='#666';
-    ctx.fillText(bar.label, bx+barW/2, barTop+maxH+valH+lbH);
+    ctx.font='bold 16px Arial';ctx.fillStyle='#555';
+    ctx.fillText(bar.label, bx+barW/2, barTop+maxH+valH+lbH-8);
   });
 
   ctx.restore();
