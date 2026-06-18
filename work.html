@@ -177,7 +177,6 @@ input[type=range]::-webkit-slider-thumb {
     <div class="param-disp" id="paramDisp">F = 10 N &nbsp;·&nbsp; d = 5 m</div>
   </div>
 
-  <div style="flex:1"></div>
   <button id="resetBtn">↺ 초기화</button>
 </div>
 
@@ -443,20 +442,14 @@ function drawSpeedo(speed, cpx, gy) {
     sc.strokeStyle=grd; sc.lineWidth=17; sc.lineCap='round'; sc.stroke();
   }
 
-  // 눈금
+  // 눈금 (선만, 숫자 없음)
   for(let i=0;i<=10;i++){
     const a=a0+(i/10)*span, major=i%2===0;
     sc.beginPath();
-    sc.moveTo(cx+Math.cos(a)*(R+3), cy+Math.sin(a)*(R+3));
-    sc.lineTo(cx+Math.cos(a)*(R-(major?21:11)), cy+Math.sin(a)*(R-(major?21:11)));
-    sc.strokeStyle=major?'rgba(255,255,255,0.9)':'rgba(255,255,255,0.38)';
-    sc.lineWidth=major?2.5:1.2; sc.stroke();
-    if(major){
-      const lr=R-32;
-      sc.fillStyle='rgba(255,255,255,0.9)'; sc.font='bold 10px Arial';
-      sc.textAlign='center'; sc.textBaseline='middle';
-      sc.fillText(Math.round(i/10*SPD_MAX), cx+Math.cos(a)*lr, cy+Math.sin(a)*lr);
-    }
+    sc.moveTo(cx+Math.cos(a)*(R+2), cy+Math.sin(a)*(R+2));
+    sc.lineTo(cx+Math.cos(a)*(R-(major?14:7)), cy+Math.sin(a)*(R-(major?14:7)));
+    sc.strokeStyle=major?'rgba(255,255,255,0.7)':'rgba(255,255,255,0.25)';
+    sc.lineWidth=major?2:1; sc.stroke();
   }
 
   // 바늘
@@ -472,17 +465,26 @@ function drawSpeedo(speed, cpx, gy) {
   sc.shadowColor='#FF6B9D'; sc.shadowBlur=8;
   sc.fillStyle='#FF6B9D'; sc.fill(); sc.shadowBlur=0;
 
-  // 속력 숫자
-  sc.fillStyle='white'; sc.font='bold 22px Arial';
+  // 속력 숫자 — 어두운 박스 + 형광 파랑으로 크고 뚜렷하게
+  const numY = cy - 18;
+  sc.save();
+  sc.globalAlpha=0.75;
+  sc.beginPath(); sc.roundRect(cx-52, numY-22, 104, 42, 9);
+  sc.fillStyle='#080c1c'; sc.fill();
+  sc.restore();
+
+  sc.shadowColor='#00D4FF'; sc.shadowBlur=14;
+  sc.fillStyle='#00D4FF';
+  sc.font='bold 34px "Courier New", monospace';
   sc.textAlign='center'; sc.textBaseline='middle';
-  sc.shadowColor='rgba(255,255,255,0.5)'; sc.shadowBlur=6;
-  sc.fillText(speed.toFixed(1), cx, cy-R*0.38);
+  sc.fillText(speed.toFixed(1), cx, numY);
   sc.shadowBlur=0;
-  sc.fillStyle='rgba(255,255,255,0.65)'; sc.font='bold 11px Arial';
-  sc.fillText('m/s', cx, cy-R*0.38+20);
+
+  sc.fillStyle='rgba(160,230,255,0.8)'; sc.font='bold 12px Arial';
+  sc.fillText('m/s', cx, numY+22);
 
   // 제목
-  sc.fillStyle='rgba(255,255,255,0.55)'; sc.font='bold 11px Arial';
+  sc.fillStyle='rgba(255,255,255,0.5)'; sc.font='bold 11px Arial';
   sc.textBaseline='middle';
   sc.fillText('속력 계기판', cx, cy-R-10);
 
