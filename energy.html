@@ -11,215 +11,74 @@ body {
   background: #1a2b3c;
   min-height: 100vh;
   font-family: 'Segoe UI', Arial, sans-serif;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px 16px 40px;
-  color: #eee;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 20px 16px 40px; color: #eee;
 }
-
-h1 {
-  font-size: 24px; font-weight: 700; margin-bottom: 5px;
-  text-shadow: 0 2px 8px rgba(0,0,0,.5);
-}
+h1 { font-size: 24px; font-weight: 700; margin-bottom: 5px; text-shadow: 0 2px 8px rgba(0,0,0,.5); }
 .guide { font-size: 13px; color: #8ab4cc; margin-bottom: 14px; }
 .guide strong { color: #4dd0e1; }
 
-/* ── 전체 가로 레이아웃 ─────────────────────────────────── */
-.app-layout {
-  display: flex;
-  gap: 18px;
-  align-items: flex-start;
-}
+.app-layout { display: flex; gap: 18px; align-items: flex-start; }
+.main-area  { display: flex; flex-direction: column; align-items: stretch; }
+#canvas { display: block; max-width: 100%; border-radius: 14px; box-shadow: 0 6px 32px rgba(0,0,0,.6); cursor: none; }
 
-/* 좌측: 캔버스 + 패널 */
-.main-area {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-}
-
-#canvas {
-  display: block;
-  max-width: 100%;
-  border-radius: 14px;
-  box-shadow: 0 6px 32px rgba(0,0,0,.6);
-  cursor: none;
-}
-
-/* ── 우측 사이드바 ──────────────────────────────────────── */
 .sidebar {
-  width: 180px;
-  min-width: 180px;
-  background: rgba(255,255,255,0.07);
-  border-radius: 14px;
-  padding: 16px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+  width: 180px; min-width: 180px;
+  background: rgba(255,255,255,0.07); border-radius: 14px;
+  padding: 16px 14px; display: flex; flex-direction: column; gap: 14px;
 }
+.sb-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: #5a8aaa; text-align: center; margin-bottom: 2px; }
+.sb-divider { border: none; border-top: 1px solid rgba(255,255,255,0.1); }
 
-.sb-label {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1.2px;
-  color: #5a8aaa;
-  text-align: center;
-  margin-bottom: 2px;
-}
-
-.sb-divider {
-  border: none;
-  border-top: 1px solid rgba(255,255,255,0.1);
-  margin: 0;
-}
-
-/* 돋보기 상자 */
 .mag-box {
-  border: 2px solid rgba(255,255,255,0.22);
-  border-radius: 12px;
-  padding: 14px 10px 10px;
-  text-align: center;
-  background: rgba(255,255,255,0.05);
-  transition: all 0.3s ease;
-  user-select: none;
+  border: 2px solid rgba(255,255,255,0.22); border-radius: 12px; padding: 14px 10px 10px;
+  text-align: center; background: rgba(255,255,255,0.05); transition: all 0.25s; user-select: none; cursor: pointer;
 }
-.mag-box.in-use {
-  border: 2px dashed rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.02);
-  opacity: 0.45;
-}
-.mag-icon {
-  font-size: 44px;
-  line-height: 1;
-  display: block;
-  margin-bottom: 8px;
-  transition: transform 0.3s;
-}
-.mag-box:not(.in-use) .mag-icon { transform: rotate(-15deg); }
-.mag-box.in-use  .mag-icon { transform: rotate(-15deg) translateX(8px) translateY(-6px); }
-.mag-tag {
-  font-size: 11px;
-  font-weight: 600;
-  color: #90b8cc;
-  letter-spacing: 0.3px;
-}
+.mag-box:hover:not(.in-use) { border-color: rgba(255,255,255,0.4); }
+.mag-box.active { border: 2px solid #4dd0e1; background: rgba(77,208,225,0.13); box-shadow: 0 0 14px rgba(77,208,225,0.35); }
+.mag-box.in-use { border: 2px dashed rgba(77,208,225,0.45); background: rgba(77,208,225,0.05); opacity: 0.5; }
+.mag-icon { font-size: 44px; line-height: 1; display: block; margin-bottom: 8px; transition: transform 0.3s; }
+.mag-box:not(.active) .mag-icon { transform: rotate(-15deg); }
+.mag-box.active .mag-icon { transform: rotate(0deg); }
+.mag-tag { font-size: 11px; font-weight: 600; color: #90b8cc; letter-spacing: 0.3px; }
+.mag-box.active .mag-tag { color: #4dd0e1; }
 
-/* 사이드바 버튼 */
-.sidebar button {
-  width: 100%;
-  padding: 10px 0;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
-  letter-spacing: 0.3px;
-}
+.sidebar button { width: 100%; padding: 10px 0; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.15s, transform 0.1s; }
 .sidebar button:active { transform: scale(0.97); }
-
-#toggleBtn          { background: #2196F3; color: #fff; }
-#toggleBtn:hover    { background: #1976D2; }
+#toggleBtn { background: #2196F3; color: #fff; }
+#toggleBtn:hover { background: #1976D2; }
 #toggleBtn.is-pause { background: #FF9800; }
 #toggleBtn.is-pause:hover { background: #F57C00; }
 #toggleBtn.is-restart { background: #43A047; }
 #toggleBtn.is-restart:hover { background: #388E3C; }
-
-#resetBtn       { background: #546E7A; color: #fff; }
+#toggleBtn.is-resume  { background: #7B1FA2; }
+#toggleBtn.is-resume:hover { background: #6A1B9A; }
+#resetBtn { background: #546E7A; color: #fff; }
 #resetBtn:hover { background: #37474F; }
 
-/* 질량 슬라이더 */
 .mass-ctrl { display: flex; flex-direction: column; gap: 7px; }
 .mass-ctrl label { font-size: 11px; font-weight: 700; letter-spacing: 0.8px; color: #5a8aaa; text-transform: uppercase; }
 #ms { width: 100%; accent-color: #4dd0e1; cursor: pointer; }
 #massVal { font-size: 15px; font-weight: 700; color: #4dd0e1; text-align: center; }
-
-/* ── 에너지 분석 패널 ───────────────────────────────────── */
-#panel {
-  background: #fff; color: #222;
-  border-radius: 14px; padding: 20px 22px; margin-top: 12px;
-  box-shadow: 0 4px 26px rgba(0,0,0,.4); display: none;
-  border-top: 5px solid #ccc;
-}
-
-.ph { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
-.pbadge {
-  width: 52px; height: 52px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 24px; font-weight: 800; color: #fff; flex-shrink: 0;
-}
-.pm h2 { font-size: 18px; }
-.pm p  { font-size: 13px; color: #666; margin-top: 3px; }
-
-.cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 20px; }
-.card { border-radius: 10px; padding: 16px 10px; text-align: center; border: 2px solid; }
-.clbl { font-size: 12px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; opacity: .7; margin-bottom: 8px; }
-.cval { font-size: 44px; font-weight: 800; line-height: 1.1; }   /* ← 2배 크게 */
-.card.pe { background: #E3F2FD; border-color: #1976D2; color: #0D47A1; }
-.card.ke { background: #FFEBEE; border-color: #C62828; color: #B71C1C; }
-.card.te { background: #E8F5E9; border-color: #2E7D32; color: #1B5E20; }
-
-/* 세로 막대 그래프 */
-.vbars { display: flex; justify-content: center; gap: 28px; }
-.vbar-col { display: flex; flex-direction: column; align-items: center; width: 80px; }
-.vb-bg {
-  width: 58px; height: 150px; background: #e4e4e4;
-  border-radius: 8px; display: flex; flex-direction: column;
-  justify-content: flex-end; overflow: hidden;
-  box-shadow: inset 0 2px 5px rgba(0,0,0,.1);
-}
-.vb-fill {
-  width: 100%; height: 0%; border-radius: 8px;
-  transition: height .75s cubic-bezier(.34,1.2,.64,1);
-}
-.vb-fill.pe { background: linear-gradient(to top,#1565C0,#42A5F5); }
-.vb-fill.ke { background: linear-gradient(to top,#B71C1C,#EF5350); }
-.vb-fill.te { background: linear-gradient(to top,#2E7D32,#66BB6A); }
-.vb-lbl { font-size: 11px; font-weight: 600; color: #555; text-align: center; margin-top: 6px; line-height: 1.35; }
-
-/* 돋보기 팝업 툴팁 */
-#tooltip {
-  position: fixed; display: none; pointer-events: none; z-index: 999;
-  background: #fff; border-radius: 10px; padding: 11px 15px;
-  box-shadow: 0 4px 22px rgba(0,0,0,.3); border-top: 3px solid #ccc;
-  min-width: 160px; font-size: 14px; color: #222;
-}
-.tt-title { font-weight: 800; font-size: 18px; margin-bottom: 8px; }
-.tt-row { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
-.tt-key { color: #777; }
-.tt-val { font-weight: 700; }
 </style>
 </head>
 <body>
-
 <h1>역학적 에너지 전환과 보존</h1>
-<p class="guide">오른쪽 <strong>돋보기</strong>를 A ~ E 지점에 가져가면 에너지를 확인할 수 있습니다</p>
+<p class="guide">오른쪽 <strong>돋보기</strong>를 클릭해 활성화한 뒤 캔버스 위를 움직이세요</p>
 
 <div class="app-layout">
-
-  <!-- 좌측: 캔버스 + 패널 -->
   <div class="main-area">
-    <canvas id="canvas" width="860" height="480"></canvas>
-    <div id="panel"></div>
+    <canvas id="canvas" width="860" height="490"></canvas>
   </div>
-
-  <!-- 우측 사이드바 -->
   <div class="sidebar">
-
-    <!-- 돋보기 도구 -->
     <div>
       <div class="sb-label">분석 도구</div>
       <div class="mag-box" id="magBox">
         <span class="mag-icon">🔍</span>
-        <span class="mag-tag" id="magTag">돋보기</span>
+        <span class="mag-tag" id="magTag">클릭하여 활성화</span>
       </div>
     </div>
-
     <hr class="sb-divider">
-
-    <!-- 열차 제어 -->
     <div>
       <div class="sb-label">열차 제어</div>
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">
@@ -227,70 +86,61 @@ h1 {
         <button id="resetBtn">&#8635; 처음으로</button>
       </div>
     </div>
-
     <hr class="sb-divider">
-
-    <!-- 질량 -->
     <div class="mass-ctrl">
       <label for="ms">질량</label>
       <input type="range" id="ms" min="1" max="100" step="1" value="10">
       <span id="massVal">10 kg</span>
     </div>
-
   </div>
 </div>
 
-<div id="tooltip"></div>
-
 <script>
-/* ── roundRect 폴리필 ──────────────────────────────────────── */
 if (!CanvasRenderingContext2D.prototype.roundRect) {
   CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r){
     r=Math.min(r||0,w/2,h/2);
-    this.moveTo(x+r,y);       this.lineTo(x+w-r,y);
-    this.quadraticCurveTo(x+w,y,x+w,y+r);
-    this.lineTo(x+w,y+h-r);  this.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-    this.lineTo(x+r,y+h);    this.quadraticCurveTo(x,y+h,x,y+h-r);
-    this.lineTo(x,y+r);      this.quadraticCurveTo(x,y,x+r,y);
+    this.moveTo(x+r,y);      this.lineTo(x+w-r,y);    this.quadraticCurveTo(x+w,y,   x+w,y+r);
+    this.lineTo(x+w,y+h-r); this.quadraticCurveTo(x+w,y+h, x+w-r,y+h);
+    this.lineTo(x+r,y+h);   this.quadraticCurveTo(x,y+h,   x,y+h-r);
+    this.lineTo(x,y+r);     this.quadraticCurveTo(x,y,     x+r,y);
     this.closePath();
   };
 }
 
-/* ── 기본 상수 ─────────────────────────────────────────────── */
 const cvs = document.getElementById('canvas');
 const ctx  = cvs.getContext('2d');
 const W = cvs.width, H = cvs.height, g = 9.8;
-let mass = 10, selP = null, hovP = null;
-let cursorX = -200, cursorY = -200, cursorOnCanvas = false;
 
-const GY = 435, PM = 24;
+let mass = 10, selP = null, hovP = null;
+let cursorX = -300, cursorY = -300, cursorOnCanvas = false;
+let analysisMode = false;
+
+const GY = 450, PM = 20;
 const hY = h => GY - h * PM;
 
-/* ── A~E 지점 ─────────────────────────────────────────────── */
 const PTS = [
-  {id:'A', h:15, x:110, col:'#E53935'},
+  {id:'A', h:20, x:110, col:'#E53935'},
   {id:'B', h:10, x:238, col:'#F57C00'},
-  {id:'C', h:2,  x:418, col:'#D4A017'},
-  {id:'D', h:12, x:612, col:'#388E3C'},
-  {id:'E', h:7,  x:766, col:'#1565C0'},
+  {id:'C', h:0,  x:418, col:'#D4A017'},
+  {id:'D', h:13, x:612, col:'#388E3C'},
+  {id:'E', h:5,  x:766, col:'#1565C0'},
 ];
-PTS.forEach(p => p.y = hY(p.h));
+PTS.forEach(p => { p.y = hY(p.h); });
 
-/* ── 트랙 경유점 → Catmull-Rom 곡선 ─────────────────────────── */
 const WP = [
-  [0,  hY(13.2)],[55, hY(14.7)],[110,hY(15.0)],
-  [165,hY(13.7)],[238,hY(10.0)],[318,hY(5.5)],
-  [380,hY(2.8)], [418,hY(2.0)], [456,hY(2.9)],
-  [528,hY(7.5)], [576,hY(11.3)],[612,hY(12.0)],
-  [658,hY(10.4)],[714,hY(8.5)], [766,hY(7.0)],
-  [820,hY(6.5)], [860,hY(6.3)],
-].map(([x,y])=>({x,y}));
+  [0,   hY(17.8)],[55,  hY(19.3)],[110, hY(20.0)],
+  [172, hY(16.0)],[238, hY(10.0)],
+  [310, hY(4.0)], [372, hY(0.7)], [418, hY(0.0)],
+  [462, hY(0.8)], [530, hY(6.5)], [575, hY(11.5)], [612, hY(13.0)],
+  [658, hY(10.8)], [716, hY(7.0)], [766, hY(5.0)],
+  [820, hY(4.5)], [860, hY(4.3)],
+].map(([x,y]) => ({x,y}));
 
-function catmull(wp){
-  const o=[],n=wp.length;
-  for(let i=0;i<n-1;i++){
+function catmull(wp) {
+  const o=[], n=wp.length;
+  for (let i=0;i<n-1;i++) {
     const p0=wp[Math.max(0,i-1)],p1=wp[i],p2=wp[i+1],p3=wp[Math.min(n-1,i+2)];
-    for(let t=0;t<1;t+=0.015){
+    for (let t=0;t<1;t+=0.015) {
       const t2=t*t,t3=t2*t;
       o.push({
         x:.5*((2*p1.x)+(-p0.x+p2.x)*t+(2*p0.x-5*p1.x+4*p2.x-p3.x)*t2+(-p0.x+3*p1.x-3*p2.x+p3.x)*t3),
@@ -298,123 +148,100 @@ function catmull(wp){
       });
     }
   }
-  o.push(wp[n-1]);
-  return o;
+  o.push(wp[n-1]); return o;
 }
 const CURVE = catmull(WP);
 
 const arcLen = [0];
-for(let i=1;i<CURVE.length;i++){
+for (let i=1;i<CURVE.length;i++) {
   const dx=CURVE[i].x-CURVE[i-1].x, dy=CURVE[i].y-CURVE[i-1].y;
   arcLen.push(arcLen[i-1]+Math.sqrt(dx*dx+dy*dy));
 }
 
-function findIdx(pt){
+function findIdx(pt) {
   let b=0,bd=Infinity;
-  for(let i=0;i<CURVE.length;i++){
-    const d=Math.hypot(CURVE[i].x-pt.x,CURVE[i].y-pt.y);
-    if(d<bd){bd=d;b=i;}
-  }
+  for (let i=0;i<CURVE.length;i++) { const d=Math.hypot(CURVE[i].x-pt.x,CURVE[i].y-pt.y); if(d<bd){bd=d;b=i;} }
   return b;
 }
 const PTS_IDX = PTS.map(findIdx);
 
-function trkY(tx){
+function trkY(tx) {
   let b=null,bd=Infinity;
-  for(const p of CURVE){const d=Math.abs(p.x-tx);if(d<bd){bd=d;b=p;}}
+  for (const p of CURVE) { const d=Math.abs(p.x-tx); if(d<bd){bd=d;b=p;} }
   return b?b.y:GY;
 }
 
-/* ── 열차 상태 ────────────────────────────────────────────── */
-const START_IDX = PTS_IDX[0];
-const END_IDX   = PTS_IDX[4];
-let trainIdx = START_IDX;
-let isMoving = false, animId = null;
-let trainSpeed = 0;
+/* ── 열차 ── */
+const START_IDX = PTS_IDX[0], END_IDX = PTS_IDX[4];
+let trainIdx=START_IDX, isMoving=false, animId=null, trainSpeed=0, pausedSpeed=0, hasPaused=false;
 
-function getH(idx){ return (GY - CURVE[Math.min(idx,CURVE.length-1)].y) / PM; }
+function getH(idx) { return (GY - CURVE[Math.min(idx,CURVE.length-1)].y) / PM; }
 
-function animate(){
-  const h  = getH(trainIdx);
-  const hA = PTS[0].h;
-  const v  = Math.sqrt(2*g*Math.max(0.04, hA-h));
-  trainSpeed = v;
-  const px = v * PM * 0.35 / 60;
-
-  const target = arcLen[trainIdx] + px;
-  while(trainIdx < CURVE.length-1 && arcLen[trainIdx] < target) trainIdx++;
-
-  if(trainIdx >= END_IDX){
-    trainIdx = END_IDX; isMoving = false; trainSpeed = 0;
-    setToggleState('restart');
-    render(); snapToNearest(); return;
+function animate() {
+  const h=getH(trainIdx), hA=PTS[0].h;
+  const raw=Math.max(0.02, hA-h);
+  const v=Math.pow(2*g*raw, 0.575);
+  trainSpeed=Math.sqrt(2*g*raw);
+  const px=v*PM*0.55/60;
+  const target=arcLen[trainIdx]+px;
+  while (trainIdx<CURVE.length-1 && arcLen[trainIdx]<target) trainIdx++;
+  if (trainIdx>=END_IDX) {
+    trainIdx=END_IDX; isMoving=false; trainSpeed=0;
+    setToggleState('restart'); render(); snapToNearest(); return;
   }
-  render();
-  animId = requestAnimationFrame(animate);
+  render(); animId=requestAnimationFrame(animate);
 }
 
-function startTrain(){
+function startTrain(fromBeginning=false) {
   if(isMoving) return;
-  trainIdx = START_IDX; trainSpeed = 0;
-  isMoving = true;
-  setToggleState('pause');
-  animId = requestAnimationFrame(animate);
+  if(fromBeginning){ trainIdx=START_IDX; pausedSpeed=0; }
+  trainSpeed=0;
+  isMoving=true; setToggleState('pause');
+  animId=requestAnimationFrame(animate);
 }
-
-function pauseTrain(){
+function pauseTrain() {
   if(!isMoving) return;
-  isMoving = false; trainSpeed = 0;
-  if(animId){ cancelAnimationFrame(animId); animId=null; }
-  setToggleState('start');
-  snapToNearest();
+  isMoving=false; trainSpeed=0;
+  if(animId){cancelAnimationFrame(animId);animId=null;}
+  const hNow = getH(trainIdx);
+  pausedSpeed = Math.sqrt(2*g*Math.max(0, PTS[0].h - hNow));
+  hasPaused = true;
+  setToggleState('resume'); render();
 }
-
-function resetTrain(){
-  isMoving = false; trainSpeed = 0;
-  if(animId){ cancelAnimationFrame(animId); animId=null; }
-  trainIdx = START_IDX; selP = null;
-  setToggleState('start');
-  document.getElementById('panel').style.display = 'none';
-  hideTooltip(); render();
+function resetTrain() {
+  isMoving=false; trainSpeed=0; pausedSpeed=0; hasPaused=false;
+  if(animId){cancelAnimationFrame(animId);animId=null;}
+  trainIdx=START_IDX; selP=null;
+  setToggleState('start'); render();
 }
-
-function snapToNearest(){
-  let bi=0, bd=Infinity;
-  PTS_IDX.forEach((ci,i)=>{
-    const d=Math.abs(arcLen[trainIdx]-arcLen[ci]);
-    if(d<bd){bd=d;bi=i;}
-  });
-  trainIdx = PTS_IDX[bi]; selP = PTS[bi];
-  document.getElementById('panel').style.display = 'none';
-  hideTooltip(); render();
+function snapToNearest() {
+  let bi=0,bd=Infinity;
+  PTS_IDX.forEach((ci,i)=>{const d=Math.abs(arcLen[trainIdx]-arcLen[ci]);if(d<bd){bd=d;bi=i;}});
+  trainIdx=PTS_IDX[bi]; selP=PTS[bi];
+  render();
 }
-
-/* 버튼 상태 관리 */
-function setToggleState(state){
-  const btn = document.getElementById('toggleBtn');
-  btn.classList.remove('is-pause','is-restart');
-  if(state==='pause'){
-    btn.textContent='⏸ 일시정지'; btn.classList.add('is-pause');
-  } else if(state==='restart'){
-    btn.textContent='▶ 다시 출발'; btn.classList.add('is-restart');
-  } else {
-    btn.textContent='▶ 출발';
-  }
+function setToggleState(s) {
+  const btn=document.getElementById('toggleBtn');
+  btn.classList.remove('is-pause','is-restart','is-resume');
+  if(s==='pause')  { btn.textContent='⏸ 일시정지'; btn.classList.add('is-pause'); }
+  else if(s==='restart'){ btn.textContent='▶ 다시 출발'; btn.classList.add('is-restart'); }
+  else if(s==='resume') { btn.textContent='▶ 계속';    btn.classList.add('is-resume'); }
+  else btn.textContent='▶ 출발';
 }
-
-/* 토글: 출발 ↔ 일시정지 */
 function toggleTrain(){
-  if(isMoving) pauseTrain(); else startTrain();
+  if(isMoving){ pauseTrain(); return; }
+  const btn=document.getElementById('toggleBtn');
+  startTrain(btn.classList.contains('is-restart'));
 }
 
-/* ── 색상 유틸 ────────────────────────────────────────────── */
 function lighten(hex,a){
   const n=parseInt(hex.replace('#',''),16);
   return `rgb(${Math.min(255,(n>>16)+a)},${Math.min(255,((n>>8)&255)+a)},${Math.min(255,(n&255)+a)})`;
 }
 
-/* ── 그리기 ────────────────────────────────────────────────── */
-function drawBg(){
+/* ════════════ 그리기 ════════════ */
+
+function drawBg() {
   const s=ctx.createLinearGradient(0,0,0,GY);
   s.addColorStop(0,'#90CAF9');s.addColorStop(.65,'#E3F2FD');s.addColorStop(1,'#fff');
   ctx.fillStyle=s; ctx.fillRect(0,0,W,GY);
@@ -427,64 +254,61 @@ function drawBg(){
   const gr=ctx.createLinearGradient(0,GY,0,H);
   gr.addColorStop(0,'#66BB6A');gr.addColorStop(1,'#388E3C');
   ctx.fillStyle=gr; ctx.fillRect(0,GY,W,H-GY);
-  ctx.strokeStyle='#4CAF50'; ctx.lineWidth=2;
+  ctx.strokeStyle='#4CAF50';ctx.lineWidth=2;
   ctx.beginPath();ctx.moveTo(0,GY);ctx.lineTo(W,GY);ctx.stroke();
 }
 
-function drawRuler(){
+function drawRuler() {
   ctx.save();
-  ctx.strokeStyle='rgba(70,70,70,.5)'; ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.moveTo(40,hY(15));ctx.lineTo(40,GY);ctx.stroke();
-  ctx.font='11px Arial'; ctx.fillStyle='#444'; ctx.textAlign='right';
-  for(let h=0;h<=15;h+=5){
+  ctx.strokeStyle='rgba(70,70,70,.5)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(40,hY(20));ctx.lineTo(40,GY);ctx.stroke();
+  ctx.font='bold 16px Arial';ctx.fillStyle='#333';ctx.textAlign='right';
+  for (let h=0;h<=20;h+=5) {
     const y=hY(h);
-    ctx.beginPath();ctx.moveTo(35,y);ctx.lineTo(45,y);ctx.stroke();
-    ctx.fillText(h+'m',33,y+4);
+    ctx.beginPath();ctx.moveTo(34,y);ctx.lineTo(46,y);ctx.stroke();
+    ctx.fillText(h+'m',32,y+6);
     ctx.save();ctx.setLineDash([4,6]);ctx.strokeStyle='rgba(0,0,0,.07)';ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(46,y);ctx.lineTo(W,y);ctx.stroke();ctx.restore();
+    ctx.beginPath();ctx.moveTo(47,y);ctx.lineTo(W,y);ctx.stroke();ctx.restore();
   }
-  ctx.save();ctx.translate(13,(hY(0)+hY(15))/2);ctx.rotate(-Math.PI/2);
-  ctx.fillStyle='#666';ctx.font='11px Arial';ctx.textAlign='center';
+  ctx.save();ctx.translate(13,(hY(0)+hY(20))/2);ctx.rotate(-Math.PI/2);
+  ctx.fillStyle='#555';ctx.font='bold 13px Arial';ctx.textAlign='center';
   ctx.fillText('높이 (m)',0,0);ctx.restore();
   ctx.restore();
 }
 
-function drawCols(){
+function drawCols() {
   ctx.save();
-  [76,178,325,460,556,690,822].forEach(cx=>{
-    const ty=trkY(cx), ch=GY-ty;
-    if(ch<18) return;
+  [76,178,325,530,660,750].forEach(cx=>{
+    const ty=trkY(cx),ch=GY-ty;
+    if(ch<18)return;
     ctx.fillStyle='#9E9E9E';
-    ctx.fillRect(cx-5,ty+12,4,ch-12); ctx.fillRect(cx+1,ty+12,4,ch-12);
-    ctx.strokeStyle='#BDBDBD'; ctx.lineWidth=1.5;
+    ctx.fillRect(cx-5,ty+12,4,ch-12);ctx.fillRect(cx+1,ty+12,4,ch-12);
+    ctx.strokeStyle='#BDBDBD';ctx.lineWidth=1.5;
     const steps=Math.max(1,Math.floor(ch/40));
-    for(let i=0;i<=steps;i++){
-      const by=ty+14+(ch-18)*i/steps;
-      ctx.beginPath();ctx.moveTo(cx-5,by);ctx.lineTo(cx+6,by);ctx.stroke();
-    }
-    ctx.fillStyle='#757575'; ctx.fillRect(cx-11,GY-8,22,10);
+    for (let i=0;i<=steps;i++){const by=ty+14+(ch-18)*i/steps;ctx.beginPath();ctx.moveTo(cx-5,by);ctx.lineTo(cx+6,by);ctx.stroke();}
+    ctx.fillStyle='#757575';ctx.fillRect(cx-11,GY-8,22,10);
   });
   ctx.restore();
 }
 
-function drawTrack(){
+function drawTrack() {
   ctx.save();
+  ctx.beginPath();ctx.rect(0,0,W,GY);ctx.clip();
   function path(){ctx.beginPath();ctx.moveTo(CURVE[0].x,CURVE[0].y);for(const p of CURVE)ctx.lineTo(p.x,p.y);}
   ctx.shadowBlur=12;ctx.shadowColor='rgba(0,0,0,.4)';ctx.shadowOffsetY=5;
   path();ctx.strokeStyle='#333';ctx.lineWidth=18;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();
   ctx.shadowBlur=0;ctx.shadowOffsetY=0;
   [-5,5].forEach(off=>{
-    ctx.beginPath();ctx.moveTo(CURVE[0].x+off,CURVE[0].y-4);
-    for(const p of CURVE)ctx.lineTo(p.x+off,p.y-4);
+    ctx.beginPath();ctx.moveTo(CURVE[0].x+off,CURVE[0].y-4);for(const p of CURVE)ctx.lineTo(p.x+off,p.y-4);
     ctx.strokeStyle='#aaa';ctx.lineWidth=3;ctx.stroke();
   });
   ctx.restore();
 }
 
-function drawArrows(){
+function drawArrows() {
   ctx.save();ctx.fillStyle='rgba(255,120,0,.72)';
   [14,72,144,244,326,388,445,504,558].forEach(i=>{
-    if(i+8>=CURVE.length) return;
+    if(i+8>=CURVE.length)return;
     const p=CURVE[i],q=CURVE[i+8],a=Math.atan2(q.y-p.y,q.x-p.x);
     ctx.save();ctx.translate(p.x,p.y-16);ctx.rotate(a);
     ctx.beginPath();ctx.moveTo(9,0);ctx.lineTo(-5,6);ctx.lineTo(-5,-6);ctx.closePath();ctx.fill();
@@ -493,19 +317,18 @@ function drawArrows(){
   ctx.restore();
 }
 
-function drawTrain(){
+function drawTrain() {
   const idx=Math.min(trainIdx,CURVE.length-1);
-  const p=CURVE[idx];
-  const q=CURVE[Math.min(idx+5,CURVE.length-1)];
+  const p=CURVE[idx], q=CURVE[Math.min(idx+5,CURVE.length-1)];
   const angle=Math.atan2(q.y-p.y,q.x-p.x);
 
   ctx.save();
-  ctx.translate(p.x,p.y); ctx.rotate(angle); ctx.translate(0,-12);
+  ctx.translate(p.x,p.y);ctx.rotate(angle);ctx.translate(0,-12);
   ctx.shadowBlur=6;ctx.shadowColor='rgba(0,0,0,.35)';ctx.shadowOffsetY=3;
   ctx.fillStyle='#CC2222';
   ctx.beginPath();ctx.roundRect(-18,-9,36,17,4);ctx.fill();
   ctx.shadowBlur=0;ctx.shadowOffsetY=0;
-  ctx.fillStyle='#FFCC00'; ctx.fillRect(14,-9,4,17);
+  ctx.fillStyle='#FFCC00';ctx.fillRect(14,-9,4,17);
   ctx.fillStyle='#BBDEFB';
   ctx.beginPath();ctx.roundRect(-13,-6,9,8,2);ctx.fill();
   ctx.beginPath();ctx.roundRect(-1,-6,9,8,2);ctx.fill();
@@ -515,243 +338,267 @@ function drawTrain(){
   });
   ctx.restore();
 
-  /* 속력 표시 (이동 중에만) */
-  if(isMoving){
-    const sp = trainSpeed.toFixed(1)+' m/s';
+  /* 이동 중: 속력 표시 (2배 크게) */
+  if (isMoving) {
+    const sp=trainSpeed.toFixed(1)+' m/s';
     ctx.save();
-    ctx.font='bold 11px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
-    const tw=ctx.measureText(sp).width+8;
-    ctx.fillStyle='rgba(20,20,20,.72)';
-    ctx.beginPath();ctx.roundRect(p.x-tw/2,p.y-40,tw,18,5);ctx.fill();
+    ctx.font='bold 22px Arial';ctx.textAlign='center';ctx.textBaseline='middle';
+    const tw=ctx.measureText(sp).width+16;
+    ctx.fillStyle='rgba(20,20,20,.82)';
+    ctx.beginPath();ctx.roundRect(p.x-tw/2,p.y-54,tw,30,7);ctx.fill();
     ctx.fillStyle='#FFE040';
-    ctx.fillText(sp,p.x,p.y-31);
-    ctx.textBaseline='alphabetic'; ctx.restore();
+    ctx.fillText(sp,p.x,p.y-39);
+    ctx.textBaseline='alphabetic';ctx.restore();
   }
 }
 
-function drawHLines(){
+/* 일시정지 후 속력 크게 표시 */
+function drawPausedSpeed() {
+  if (isMoving || !hasPaused) return;
+  const p = CURVE[Math.min(trainIdx,CURVE.length-1)];
+  const sp = 'v = '+pausedSpeed.toFixed(2)+' m/s';
+  ctx.save();
+  ctx.font='bold 26px Arial';ctx.textAlign='center';ctx.textBaseline='middle';
+  const tw=ctx.measureText(sp).width+24;
+  const bx=p.x-tw/2, by=p.y-70;
+
+  ctx.shadowBlur=10;ctx.shadowColor='rgba(0,0,0,.4)';
+  ctx.fillStyle='rgba(15,15,15,.88)';
+  ctx.beginPath();ctx.roundRect(bx,by,tw,38,9);ctx.fill();
+  ctx.shadowBlur=0;
+
+  ctx.strokeStyle='#4dd0e1';ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.roundRect(bx,by,tw,38,9);ctx.stroke();
+
+  ctx.fillStyle='#FFE040';
+  ctx.fillText(sp,p.x,by+19);
+  ctx.textBaseline='alphabetic';ctx.restore();
+}
+
+function drawHLines() {
   ctx.save();
   PTS.forEach(p=>{
-    const active = selP && selP.id===p.id;
+    if(p.y>=GY-4)return;
+    const active=selP&&selP.id===p.id;
     ctx.setLineDash([5,4]);
-    ctx.strokeStyle = active ? p.col : 'rgba(80,80,80,.35)';
-    ctx.lineWidth   = active ? 2 : 1.2;
-    ctx.beginPath();ctx.moveTo(p.x,p.y+22);ctx.lineTo(p.x,GY);ctx.stroke();
+    ctx.strokeStyle=active?p.col:'rgba(80,80,80,.35)';
+    ctx.lineWidth=active?2:1.2;
+    const lineStart = p.y + 57;
+    if (lineStart < GY - 4) { ctx.beginPath();ctx.moveTo(p.x,lineStart);ctx.lineTo(p.x,GY);ctx.stroke(); }
     if(active){
       ctx.setLineDash([]);
-      const midY=(p.y+22+GY)/2, lbl=`h = ${p.h} m`;
-      ctx.font='bold 12px Arial';
-      const tw=ctx.measureText(lbl).width+12;
+      const midY=(p.y+24+GY)/2, lbl='h = '+p.h+' m';
+      ctx.font='bold 14px Arial';
+      const tw=ctx.measureText(lbl).width+14;
       ctx.fillStyle='rgba(255,255,255,.94)';
-      ctx.beginPath();ctx.roundRect(p.x+6,midY-10,tw,20,4);ctx.fill();
-      ctx.fillStyle=p.col; ctx.textAlign='left';
-      ctx.fillText(lbl,p.x+12,midY+4);
+      ctx.beginPath();ctx.roundRect(p.x+7,midY-11,tw,22,4);ctx.fill();
+      ctx.fillStyle=p.col;ctx.textAlign='left';
+      ctx.fillText(lbl,p.x+14,midY+5);
     }
   });
   ctx.restore();
 }
 
-function drawCircles(){
+function drawCircles() {
   PTS.forEach(p=>{
-    const sel = selP && selP.id===p.id;
-    const hov = hovP && hovP.id===p.id;
-    const r   = sel ? 24 : hov ? 22 : 19;
+    const sel=selP&&selP.id===p.id;
+    const hov=hovP&&hovP.id===p.id;
+    const r=sel?24:hov?22:19;
+    const drawY=(p.id==='C')?GY-r-4:p.y;
     ctx.save();
     if(sel){
-      ctx.shadowBlur=26; ctx.shadowColor=p.col;
-      ctx.beginPath();ctx.arc(p.x,p.y,r+4,0,Math.PI*2);
-      ctx.fillStyle='white';ctx.fill(); ctx.shadowBlur=0;
+      ctx.shadowBlur=26;ctx.shadowColor=p.col;
+      ctx.beginPath();ctx.arc(p.x,drawY,r+4,0,Math.PI*2);ctx.fillStyle='white';ctx.fill();ctx.shadowBlur=0;
       ctx.save();ctx.setLineDash([7,4]);ctx.strokeStyle=p.col;ctx.lineWidth=2.5;
-      ctx.beginPath();ctx.arc(p.x,p.y,r+13,0,Math.PI*2);ctx.stroke();ctx.restore();
+      ctx.beginPath();ctx.arc(p.x,drawY,r+13,0,Math.PI*2);ctx.stroke();ctx.restore();
     } else {
-      ctx.beginPath();ctx.arc(p.x,p.y,r+3.5,0,Math.PI*2);ctx.fillStyle='white';ctx.fill();
+      ctx.beginPath();ctx.arc(p.x,drawY,r+3.5,0,Math.PI*2);ctx.fillStyle='white';ctx.fill();
     }
-    const gr=ctx.createRadialGradient(p.x-r*.3,p.y-r*.3,1,p.x,p.y,r);
-    gr.addColorStop(0,lighten(p.col,55)); gr.addColorStop(1,p.col);
-    ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fillStyle=gr;ctx.fill();
+    const gr=ctx.createRadialGradient(p.x-r*.3,drawY-r*.3,1,p.x,drawY,r);
+    gr.addColorStop(0,lighten(p.col,55));gr.addColorStop(1,p.col);
+    ctx.beginPath();ctx.arc(p.x,drawY,r,0,Math.PI*2);ctx.fillStyle=gr;ctx.fill();
 
-    ctx.fillStyle='white'; ctx.font=`bold ${sel?19:16}px Arial`;
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(p.id,p.x,p.y); ctx.textBaseline='alphabetic';
 
-    const ty=Math.max(18,p.y-r-24);
-    ctx.font='11px Arial';
-    const tw=ctx.measureText(p.h+'m').width+10;
-    ctx.fillStyle='rgba(0,0,0,.65)';
-    ctx.beginPath();ctx.roundRect(p.x-tw/2,ty-9,tw,18,5);ctx.fill();
-    ctx.fillStyle='white'; ctx.textAlign='center';
-    ctx.fillText(p.h+'m',p.x,ty+3);
+    /* 높이 배지 – 원 아래쪽 */
+    const ty=Math.min(H-18, drawY+r+10);
+    ctx.font='bold 16px Arial';
+    const lbl=p.h+'m', tw=ctx.measureText(lbl).width+12;
+    ctx.fillStyle='rgba(0,0,0,.68)';
+    ctx.beginPath();ctx.roundRect(p.x-tw/2,ty,tw,22,5);ctx.fill();
+    ctx.fillStyle='white';ctx.textAlign='center';
+    ctx.fillText(lbl,p.x,ty+15);
     ctx.restore();
   });
 }
 
-function drawMagnifier(x,y,active){
+function drawMagnifier(x,y,active) {
   ctx.save();
-  const r = active ? 21 : 15;
-  if(active){ ctx.shadowBlur=16; ctx.shadowColor='rgba(80,150,255,.75)'; }
-  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
-  ctx.fillStyle = active ? 'rgba(200,228,255,.42)' : 'rgba(200,228,255,.2)';
-  ctx.fill();
-  ctx.strokeStyle = active ? '#3366EE' : 'rgba(70,70,70,.82)';
-  ctx.lineWidth = active ? 3 : 2.5; ctx.stroke();
+  const r=active?21:15;
+  if(active){ctx.shadowBlur=16;ctx.shadowColor='rgba(80,150,255,.75)';}
+  ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
+  ctx.fillStyle=active?'rgba(200,228,255,.42)':'rgba(200,228,255,.2)';ctx.fill();
+  ctx.strokeStyle=active?'#3366EE':'rgba(70,70,70,.82)';
+  ctx.lineWidth=active?3:2.5;ctx.stroke();
   ctx.shadowBlur=0;
-  ctx.strokeStyle = active ? 'rgba(80,140,255,.5)' : 'rgba(100,100,100,.3)';
+  ctx.strokeStyle=active?'rgba(80,140,255,.5)':'rgba(100,100,100,.3)';
   ctx.lineWidth=1;
   ctx.beginPath();ctx.moveTo(x-r+5,y);ctx.lineTo(x+r-5,y);ctx.stroke();
   ctx.beginPath();ctx.moveTo(x,y-r+5);ctx.lineTo(x,y+r-5);ctx.stroke();
-  const hx=x+r*.72, hy=y+r*.72;
-  ctx.strokeStyle = active ? '#224499' : 'rgba(50,50,50,.85)';
-  ctx.lineWidth = active ? 5.5 : 4.5; ctx.lineCap='round';
+  const hx=x+r*.72,hy=y+r*.72;
+  ctx.strokeStyle=active?'#224499':'rgba(50,50,50,.85)';
+  ctx.lineWidth=active?5.5:4.5;ctx.lineCap='round';
   ctx.beginPath();ctx.moveTo(hx,hy);ctx.lineTo(hx+18,hy+18);ctx.stroke();
   ctx.restore();
 }
 
-function render(){
+/* ── 커서 위치 기반 에너지 막대 (전체 위치 지원) ── */
+function drawCursorBar() {
+  /* 커서 x 에서 트랙 높이 계산 */
+  const trackY = trkY(cursorX);
+  const h = Math.max(0, Math.min(PTS[0].h, (GY - trackY) / PM));
+  const hA  = PTS[0].h;
+  const totE = mass * g * hA;
+  const PE   = mass * g * h;
+  const KE   = Math.max(0, totE - PE);
+  const v    = Math.sqrt(2*g*Math.max(0, hA-h));
+
+  /* A-E 지점이면 색상/제목 그 점 기준 */
+  const nearPt  = hovP;
+  const borderC = nearPt ? nearPt.col : '#4466AA';
+  const titleTxt= nearPt ? '지점 '+nearPt.id : 'h = '+h.toFixed(1)+' m';
+
+  /* 차트 크기 */
+  const barW=28, maxH=110, gap=16, pad=16;
+  const chartW = 3*barW + 2*gap + 2*pad;
+  const titleH=28, valH=24, lbH=20, chartH = titleH + maxH + valH + lbH + 2*pad + 4;
+
+  /* 위치: 커서 오른쪽, 벗어나면 왼쪽 */
+  let cx = cursorX + 44;
+  let cy = cursorY - chartH/2;
+  if (cx+chartW > W-4) cx = cursorX - chartW - 28;
+  if (cy < 4)           cy = 4;
+  if (cy+chartH > H-4)  cy = H - chartH - 4;
+
+  ctx.save();
+
+  /* 배경 */
+  ctx.shadowBlur=18;ctx.shadowColor='rgba(0,0,0,.4)';ctx.shadowOffsetY=5;
+  ctx.fillStyle='rgba(255,255,255,.97)';
+  ctx.beginPath();ctx.roundRect(cx,cy,chartW,chartH,13);ctx.fill();
+  ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+
+  /* 테두리 */
+  ctx.strokeStyle=borderC;ctx.lineWidth=3;
+  ctx.beginPath();ctx.roundRect(cx,cy,chartW,chartH,13);ctx.stroke();
+
+  /* 제목 */
+  ctx.font='bold 17px Arial';ctx.fillStyle=borderC;ctx.textAlign='center';
+  ctx.fillText(titleTxt, cx+chartW/2, cy+pad+18);
+
+  /* 속력 (작은 서브 타이틀) */
+  ctx.font='13px Arial';ctx.fillStyle='#777';
+  ctx.fillText('v = '+v.toFixed(2)+' m/s', cx+chartW/2, cy+pad+titleH+2);
+
+  const barData=[
+    {label:'위치',  val:PE,   c1:'#1565C0', c2:'#42A5F5', bg:'#DDEEFF'},
+    {label:'운동',  val:KE,   c1:'#B71C1C', c2:'#EF5350', bg:'#FFECEC'},
+    {label:'역학적',val:totE, c1:'#2E7D32', c2:'#66BB6A', bg:'#E6F5E8'},
+  ];
+  const barTop = cy + pad + titleH + 12;
+
+  barData.forEach((bar,i)=>{
+    const bx=cx+pad+i*(barW+gap);
+    const pct=totE>0?bar.val/totE:0;
+    const fh=pct*maxH;
+
+    /* 빈 트랙 */
+    ctx.fillStyle=bar.bg;
+    ctx.beginPath();ctx.roundRect(bx,barTop,barW,maxH,6);ctx.fill();
+
+    /* 채워진 막대 (아래에서 위로) */
+    if(bar.val>0.001){
+      const gr=ctx.createLinearGradient(0,barTop+maxH,0,barTop+maxH-fh);
+      gr.addColorStop(0,bar.c1);gr.addColorStop(1,bar.c2);
+      ctx.fillStyle=gr;
+      ctx.beginPath();ctx.roundRect(bx,barTop+maxH-fh,barW,fh,6);ctx.fill();
+    }
+
+    /* J 값 (두배 크게) */
+    ctx.font='bold 18px Arial';ctx.fillStyle=bar.c1;ctx.textAlign='center';
+    ctx.fillText(bar.val.toFixed(0)+'J', bx+barW/2, barTop+maxH+valH);
+
+    /* 라벨 */
+    ctx.font='bold 14px Arial';ctx.fillStyle='#666';
+    ctx.fillText(bar.label, bx+barW/2, barTop+maxH+valH+lbH);
+  });
+
+  ctx.restore();
+}
+
+function render() {
   ctx.clearRect(0,0,W,H);
   drawBg(); drawRuler(); drawCols(); drawTrack(); drawArrows();
   drawTrain();
-  drawHLines(); drawCircles();
-  if(cursorOnCanvas) drawMagnifier(cursorX,cursorY,hovP!==null);
+  drawPausedSpeed();
+  if (analysisMode && cursorOnCanvas) drawCursorBar();
+  if (cursorOnCanvas) drawMagnifier(cursorX, cursorY, analysisMode);
 }
 
-/* ── 충돌 감지 ──────────────────────────────────────────────── */
-function hit(mx,my){ return PTS.find(p=>Math.hypot(mx-p.x,my-p.y)<=32)||null; }
-function cvsPt(e){
-  const r=cvs.getBoundingClientRect();
-  return {x:(e.clientX-r.left)*(W/r.width), y:(e.clientY-r.top)*(H/r.height)};
-}
+/* ── 히트 감지 ── */
+function getDrawY(p){return (p.id==='C')?GY-23:p.y;}
+function hit(mx,my){return PTS.find(p=>Math.hypot(mx-p.x,my-getDrawY(p))<=32)||null;}
+function cvsPt(e){const r=cvs.getBoundingClientRect();return{x:(e.clientX-r.left)*(W/r.width),y:(e.clientY-r.top)*(H/r.height)};}
 
-/* ── 이벤트 ─────────────────────────────────────────────────── */
-let lastHovId = null;
+let lastHovId=null;
 
 cvs.addEventListener('mousemove', e=>{
   const{x,y}=cvsPt(e);
-  cursorX=x; cursorY=y; cursorOnCanvas=true;
+  cursorX=x;cursorY=y;cursorOnCanvas=true;
   const nw=hit(x,y);
   if((nw?nw.id:null)!==lastHovId){
-    hovP=nw; lastHovId=nw?nw.id:null;
-    if(hovP){ selP=hovP; showPanel(hovP); showTooltip(hovP); }
-    else hideTooltip();
+    hovP=nw;lastHovId=nw?nw.id:null;
+    if(hovP)selP=hovP;
+    updateMagStatus();
   }
   render();
 });
 
-cvs.addEventListener('mouseenter', ()=>{
-  cursorOnCanvas=true;
-  document.getElementById('magBox').classList.add('in-use');
-  document.getElementById('magTag').textContent='분석 중...';
+cvs.addEventListener('mouseenter',()=>{cursorOnCanvas=true;updateMagStatus();});
+cvs.addEventListener('mouseleave',()=>{
+  cursorOnCanvas=false;hovP=null;lastHovId=null;
+  updateMagStatus();render();
 });
 
-cvs.addEventListener('mouseleave', ()=>{
-  cursorOnCanvas=false; hovP=null; lastHovId=null;
-  document.getElementById('magBox').classList.remove('in-use');
-  document.getElementById('magTag').textContent='돋보기';
-  hideTooltip(); render();
-});
-
-cvs.addEventListener('touchstart', e=>{
+cvs.addEventListener('touchstart',e=>{
   e.preventDefault();
-  const t=e.changedTouches[0], r=cvs.getBoundingClientRect();
-  const x=(t.clientX-r.left)*(W/r.width), y=(t.clientY-r.top)*(H/r.height);
+  const t=e.changedTouches[0],r=cvs.getBoundingClientRect();
+  const x=(t.clientX-r.left)*(W/r.width),y=(t.clientY-r.top)*(H/r.height);
   const pt=hit(x,y);
-  if(pt){ selP=pt; showPanel(pt); showTooltip(pt); render(); }
+  if(pt){selP=pt;hovP=pt;render();}
 },{passive:false});
 
-document.getElementById('ms').addEventListener('input', function(){
-  mass=+this.value;
-  document.getElementById('massVal').textContent=mass+' kg';
-  if(selP){ showPanel(selP); showTooltip(selP); }
+document.getElementById('magBox').addEventListener('click',()=>{
+  analysisMode=!analysisMode;
+  updateMagStatus();render();
 });
 
-document.getElementById('toggleBtn').addEventListener('click', toggleTrain);
-document.getElementById('resetBtn').addEventListener('click', resetTrain);
-
-/* ── 돋보기 팝업 ─────────────────────────────────────────────── */
-function showTooltip(pt){
-  const totE=mass*g*PTS[0].h, PE=mass*g*pt.h, KE=Math.max(0,totE-PE);
-  const v=Math.sqrt(2*KE/mass);
-  const r=cvs.getBoundingClientRect();
-  const px=r.left+pt.x*(r.width/W), py=r.top+pt.y*(r.height/H);
-
-  const tt=document.getElementById('tooltip');
-  tt.style.borderTopColor=pt.col;
-  tt.innerHTML=`
-    <div class="tt-title" style="color:${pt.col}">지점 ${pt.id}</div>
-    <div class="tt-row"><span class="tt-key">높이</span><span class="tt-val">${pt.h} m</span></div>
-    <div class="tt-row"><span class="tt-key">위치에너지</span><span class="tt-val" style="color:#1565C0">${PE.toFixed(1)} J</span></div>
-    <div class="tt-row"><span class="tt-key">운동에너지</span><span class="tt-val" style="color:#B71C1C">${KE.toFixed(1)} J</span></div>
-    <div class="tt-row"><span class="tt-key">속력</span><span class="tt-val">${v.toFixed(2)} m/s</span></div>
-  `;
-  tt.style.display='block';
-  const ttW=170, ttH=120;
-  let left=px-ttW/2, top=py-ttH-32;
-  if(left<4) left=4;
-  if(left+ttW>window.innerWidth-4) left=window.innerWidth-ttW-4;
-  if(top<4) top=py+40;
-  tt.style.left=left+'px'; tt.style.top=top+'px';
+function updateMagStatus(){
+  const box=document.getElementById('magBox');
+  const tag=document.getElementById('magTag');
+  box.classList.remove('active','in-use');
+  if(!analysisMode){tag.textContent='클릭하여 활성화';}
+  else if(cursorOnCanvas){box.classList.add('in-use');tag.textContent='분석 중...';}
+  else{box.classList.add('active');tag.textContent='분석 모드 ON';}
 }
 
-function hideTooltip(){ document.getElementById('tooltip').style.display='none'; }
+document.getElementById('ms').addEventListener('input',function(){
+  mass=+this.value;
+  document.getElementById('massVal').textContent=mass+' kg';
+  render();
+});
 
-/* ── 에너지 분석 패널 ──────────────────────────────────────── */
-function f1(n){ return n.toFixed(1); }
-function f2(n){ return n.toFixed(2); }
-
-function showPanel(pt){
-  const hA=PTS[0].h, totE=mass*g*hA, PE=mass*g*pt.h, KE=Math.max(0,totE-PE);
-  const v=Math.sqrt(2*KE/mass);
-  const peP=(PE/totE*100).toFixed(1), keP=(KE/totE*100).toFixed(1);
-
-  const panel=document.getElementById('panel');
-  panel.style.display='block';
-  panel.style.borderTopColor=pt.col;
-
-  panel.innerHTML=`
-    <div class="ph">
-      <div class="pbadge" style="background:${pt.col}">${pt.id}</div>
-      <div class="pm">
-        <h2>지점 ${pt.id}의 에너지 분석</h2>
-        <p>높이 h = <strong>${pt.h} m</strong> &nbsp;&middot;&nbsp; 속력 v &asymp; <strong>${f2(v)} m/s</strong></p>
-      </div>
-    </div>
-    <div class="cards">
-      <div class="card pe">
-        <div class="clbl">위치에너지 PE</div>
-        <div class="cval">${f1(PE)} J</div>
-      </div>
-      <div class="card ke">
-        <div class="clbl">운동에너지 KE</div>
-        <div class="cval">${f1(KE)} J</div>
-      </div>
-      <div class="card te">
-        <div class="clbl">역학적에너지 E</div>
-        <div class="cval">${f1(totE)} J</div>
-      </div>
-    </div>
-    <div class="vbars">
-      <div class="vbar-col">
-        <div class="vb-bg"><div class="vb-fill pe" id="vpe"></div></div>
-        <div class="vb-lbl">위치에너지<br>PE</div>
-      </div>
-      <div class="vbar-col">
-        <div class="vb-bg"><div class="vb-fill ke" id="vke"></div></div>
-        <div class="vb-lbl">운동에너지<br>KE</div>
-      </div>
-      <div class="vbar-col">
-        <div class="vb-bg"><div class="vb-fill te" id="vte"></div></div>
-        <div class="vb-lbl">역학적에너지<br>E</div>
-      </div>
-    </div>
-  `;
-
-  setTimeout(()=>{
-    document.getElementById('vpe').style.height = peP+'%';
-    const keBar=document.getElementById('vke');
-    if(KE<=0){ keBar.style.height='0%'; keBar.style.background='transparent'; }
-    else { keBar.style.background=''; keBar.style.height=keP+'%'; }
-    document.getElementById('vte').style.height='100%';
-  }, 60);
-}
+document.getElementById('toggleBtn').addEventListener('click',toggleTrain);
+document.getElementById('resetBtn').addEventListener('click',resetTrain);
 
 render();
 </script>
