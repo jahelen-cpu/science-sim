@@ -301,7 +301,6 @@ function updateEngineSound(v) {
   engNodes.osc2.frequency.setTargetAtTime(freq * 2, t, 0.06);
   engNodes.osc3.frequency.setTargetAtTime(freq + 3, t, 0.06);
   engNodes.filt.frequency.setTargetAtTime(260 + (v / SPD_MAX) * 850, t, 0.1);
-  engNodes.gain.gain.setTargetAtTime(0.18 + (v / SPD_MAX) * 0.1, t, 0.1);
 }
 
 function stopEngineSound() {
