@@ -239,6 +239,82 @@ window.addEventListener('resize', resizeSim);
 function GY() { return simCv.height * 0.62; }
 
 // ══════════════════════════════════════
+//  엔진 소리 (Web Audio API)
+// ══════════════════════════════════════
+let audioCtx = null;
+let engNodes = null;
+
+function _ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function startEngineSound() {
+  _ensureAudio();
+  if (engNodes) return;
+  const ctx = audioCtx;
+
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0, ctx.currentTime);
+  gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.3);
+  gain.connect(ctx.destination);
+
+  const filt = ctx.createBiquadFilter();
+  filt.type = 'lowpass';
+  filt.frequency.value = 260;
+  filt.Q.value = 1.3;
+  filt.connect(gain);
+
+  // 베이스 오실레이터
+  const osc1 = ctx.createOscillator();
+  osc1.type = 'sawtooth';
+  osc1.frequency.value = 52;
+  osc1.connect(filt);
+  osc1.start();
+
+  // 2배음 (배기음)
+  const osc2 = ctx.createOscillator();
+  osc2.type = 'sawtooth';
+  osc2.frequency.value = 104;
+  const g2 = ctx.createGain();
+  g2.gain.value = 0.28;
+  osc2.connect(g2); g2.connect(filt);
+  osc2.start();
+
+  // 약간 detuned (거칠기 표현)
+  const osc3 = ctx.createOscillator();
+  osc3.type = 'square';
+  osc3.frequency.value = 55;
+  const g3 = ctx.createGain();
+  g3.gain.value = 0.14;
+  osc3.connect(g3); g3.connect(filt);
+  osc3.start();
+
+  engNodes = { gain, filt, osc1, osc2, osc3 };
+}
+
+function updateEngineSound(v) {
+  if (!engNodes || !audioCtx) return;
+  const t = audioCtx.currentTime;
+  const freq = 52 + (v / SPD_MAX) * 130; // 가속에 따라 52→182 Hz
+  engNodes.osc1.frequency.setTargetAtTime(freq,     t, 0.06);
+  engNodes.osc2.frequency.setTargetAtTime(freq * 2, t, 0.06);
+  engNodes.osc3.frequency.setTargetAtTime(freq + 3, t, 0.06);
+  engNodes.filt.frequency.setTargetAtTime(260 + (v / SPD_MAX) * 850, t, 0.1);
+  engNodes.gain.gain.setTargetAtTime(0.18 + (v / SPD_MAX) * 0.1, t, 0.1);
+}
+
+function stopEngineSound() {
+  if (!engNodes || !audioCtx) return;
+  engNodes.gain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.18);
+  const nodes = engNodes;
+  engNodes = null;
+  setTimeout(function() {
+    try { nodes.osc1.stop(); nodes.osc2.stop(); nodes.osc3.stop(); } catch(e) {}
+  }, 700);
+}
+
+// ══════════════════════════════════════
 //  이벤트
 // ══════════════════════════════════════
 
@@ -255,6 +331,7 @@ function handleHandClick() {
     handCv.classList.add('active');
     drawHandPanel(true);
     document.getElementById('handSub').textContent = '힘 적용 중... (클릭: 일시정지)';
+    startEngineSound();
   } else if (sim.paused) {
     // 재개
     sim.paused = false;
@@ -262,16 +339,19 @@ function handleHandClick() {
     drawHandPanel(true);
     const txt = sim.phase === 'pushing' ? '힘 적용 중... (클릭: 일시정지)' : '등속 운동 중 (클릭: 일시정지)';
     document.getElementById('handSub').textContent = txt;
+    if (sim.phase === 'pushing') startEngineSound();
   } else {
     // 일시 정지
     sim.paused = true;
     handCv.classList.remove('active');
     drawHandPanel(false);
     document.getElementById('handSub').textContent = '⏸ 일시 정지  (클릭: 계속)';
+    stopEngineSound();
   }
 }
 
 function resetSim() {
+  stopEngineSound();
   sim.x=0; sim.v=0; sim.pushX=0; sim.work=0; sim.phase='idle'; sim.paused=false;
   handCv.classList.remove('active');
   document.getElementById('handSub').textContent = '손을 클릭하여 시작';
@@ -811,8 +891,10 @@ function loop(t) {
       sim.work  += F * dActual;
       sim.v      = Math.sqrt(2 * sim.work / MASS);
       sim.x     += dActual;
+      updateEngineSound(sim.v);
       if(sim.pushX >= D){
         sim.phase='cruising';
+        stopEngineSound();
         handCv.classList.remove('active');
         drawHandPanel(false);
         document.getElementById('handSub').textContent='등속 운동 중 (클릭: 일시정지)';
