@@ -346,17 +346,29 @@ function drawTrain() {
   });
   ctx.restore();
 
-  /* 이동 중: 속력 표시 (2배 크게) */
+  /* 이동 중: 속력 + 높이 표시 */
   if (isMoving) {
-    const sp=trainSpeed.toFixed(1)+' m/s';
+    const curH = getH(trainIdx);
+    const sp = trainSpeed.toFixed(1) + ' m/s';
+    const hStr = curH.toFixed(1) + ' m';
     ctx.save();
-    ctx.font='bold 22px Arial';ctx.textAlign='center';ctx.textBaseline='middle';
-    const tw=ctx.measureText(sp).width+16;
-    ctx.fillStyle='rgba(20,20,20,.82)';
-    ctx.beginPath();ctx.roundRect(p.x-tw/2,p.y-54,tw,30,7);ctx.fill();
-    ctx.fillStyle='#FFE040';
-    ctx.fillText(sp,p.x,p.y-39);
-    ctx.textBaseline='alphabetic';ctx.restore();
+    ctx.font = 'bold 22px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const twS = ctx.measureText(sp).width + 16;
+    const twH = ctx.measureText(hStr).width + 16;
+    const boxH = 30, gap = 4;
+    /* 속력 박스 (검정 바탕, 노란 글씨) */
+    const sTop = Math.max(gap, p.y - 54);
+    ctx.fillStyle = 'rgba(20,20,20,.82)';
+    ctx.beginPath(); ctx.roundRect(p.x - twS/2, sTop, twS, boxH, 7); ctx.fill();
+    ctx.fillStyle = '#FFE040';
+    ctx.fillText(sp, p.x, sTop + boxH/2);
+    /* 높이 박스 (파란 바탕, 하늘색 글씨) */
+    const hTop = Math.max(gap, sTop - boxH - gap);
+    ctx.fillStyle = 'rgba(0,40,80,.88)';
+    ctx.beginPath(); ctx.roundRect(p.x - twH/2, hTop, twH, boxH, 7); ctx.fill();
+    ctx.fillStyle = '#4FC3F7';
+    ctx.fillText(hStr, p.x, hTop + boxH/2);
+    ctx.textBaseline = 'alphabetic'; ctx.restore();
   }
 }
 
@@ -425,7 +437,11 @@ function drawCircles() {
     const gr=ctx.createRadialGradient(p.x-r*.3,drawY-r*.3,1,p.x,drawY,r);
     gr.addColorStop(0,lighten(p.col,55));gr.addColorStop(1,p.col);
     ctx.beginPath();ctx.arc(p.x,drawY,r,0,Math.PI*2);ctx.fillStyle=gr;ctx.fill();
-
+    /* 점 라벨 (A,B,C,D,E) */
+    ctx.font='bold 17px Arial';ctx.fillStyle='white';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(p.id,p.x,drawY);
+    ctx.textBaseline='alphabetic';
 
     /* 높이 배지 – 원 아래쪽 */
     const ty=Math.min(H-18, drawY+r+10);
@@ -557,6 +573,60 @@ function drawScream() {
   ctx.textBaseline = 'alphabetic'; ctx.restore();
 }
 
+/* ── A~E 점 정보 카드 ── */
+function drawPointCard() {
+  if (!selP) return;
+  const p = selP;
+  const hA = PTS[0].h;
+  const v = Math.sqrt(2 * g * Math.max(0, hA - p.h));
+  const PE = (mass * g * p.h).toFixed(0);
+  const KE = (mass * g * Math.max(0, hA - p.h)).toFixed(0);
+  const totE = (mass * g * hA).toFixed(0);
+  const drawY = (p.id === 'C') ? GY - 23 : p.y;
+
+  const lines = [
+    ['지점 ' + p.id, true],
+    ['h = ' + p.h.toFixed(1) + ' m', false],
+    ['v = ' + v.toFixed(2) + ' m/s', false],
+    ['운동에너지 = ' + KE + ' J', false],
+    ['위치에너지 = ' + PE + ' J', false],
+    ['역학적 = ' + totE + ' J', false],
+  ];
+
+  ctx.save();
+  let maxW = 0;
+  lines.forEach(([txt, bold]) => {
+    ctx.font = bold ? 'bold 16px Arial' : '14px Arial';
+    maxW = Math.max(maxW, ctx.measureText(txt).width);
+  });
+
+  const padX = 12, padY = 8, lineH = 21;
+  const cardW = maxW + padX * 2;
+  const cardH = lines.length * lineH + padY * 2;
+
+  let cx = p.x + 28;
+  let cy = drawY - cardH / 2;
+  if (cx + cardW > W - 4) cx = p.x - 28 - cardW;
+  if (cy < 4) cy = 4;
+  if (cy + cardH > H - 4) cy = H - cardH - 4;
+
+  ctx.shadowBlur = 12; ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowOffsetY = 3;
+  ctx.fillStyle = 'rgba(255,255,255,.97)';
+  ctx.beginPath(); ctx.roundRect(cx, cy, cardW, cardH, 10); ctx.fill();
+  ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+
+  ctx.strokeStyle = p.col; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.roundRect(cx, cy, cardW, cardH, 10); ctx.stroke();
+
+  lines.forEach(([txt, bold], i) => {
+    ctx.font = bold ? 'bold 16px Arial' : '14px Arial';
+    ctx.fillStyle = bold ? p.col : '#333';
+    ctx.textAlign = 'left';
+    ctx.fillText(txt, cx + padX, cy + padY + lineH * i + 15);
+  });
+  ctx.restore();
+}
+
 function drawMagnifier(x,y,active) {
   ctx.save();
   const r=active?21:15;
@@ -664,8 +734,9 @@ function drawCursorBar() {
 function render() {
   ctx.clearRect(0,0,W,H);
   drawBg(); drawRuler(); drawCols(); drawTrack(); drawArrows();
+  drawHLines(); drawCircles();
   drawTrain(); updateAndDrawParticles(); drawScream();
-  drawPausedSpeed();
+  drawPausedSpeed(); drawPointCard();
   if (analysisMode && cursorOnCanvas) drawCursorBar();
   if (cursorOnCanvas) drawMagnifier(cursorX, cursorY, analysisMode);
 }
@@ -730,3 +801,4 @@ render();
 </script>
 </body>
 </html>
+
