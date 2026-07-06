@@ -278,17 +278,6 @@
 
 <div id="celebrateBanner" class="celebrate-banner" style="display:none;"></div>
 
-<div id="pwModal" class="modal hidden">
-  <div class="modal-box">
-    <p>교사 모드 비밀번호를 입력하세요</p>
-    <input type="password" id="pwInput">
-    <div class="modal-buttons">
-      <button id="pwCancel">취소</button>
-      <button id="pwOk">확인</button>
-    </div>
-  </div>
-</div>
-
 <div id="teacherPanel" class="modal hidden">
   <div class="modal-box wide">
     <h3>교사용 - 조별 정답 확인/수정</h3>
@@ -303,10 +292,8 @@
 <script>
 const TEAM_COUNT = 5;
 const DIGIT_COUNT = 4;
-const PASSWORD = '2026';
 
 let teams = [];
-let teacherUnlocked = false;
 let round = 1;
 let solvedCount = 0;
 
@@ -562,6 +549,7 @@ function gradeRound() {
       newlySolved.push({ t, inputTd, resultTd });
     } else {
       resultTd.textContent = `${strike}S ${ball}B`;
+      resultTd.style.color = '#1565c0';
     }
   });
 
@@ -609,28 +597,7 @@ function newGame() {
 }
 
 function handleTeacherClick() {
-  if (teacherUnlocked) {
-    openTeacherPanel();
-  } else {
-    openPasswordModal();
-  }
-}
-
-function openPasswordModal() {
-  document.getElementById('pwInput').value = '';
-  document.getElementById('pwModal').classList.remove('hidden');
-  document.getElementById('pwInput').focus();
-}
-
-function checkPassword() {
-  const pw = document.getElementById('pwInput').value;
-  if (pw === PASSWORD) {
-    teacherUnlocked = true;
-    document.getElementById('pwModal').classList.add('hidden');
-    openTeacherPanel();
-  } else {
-    alert('비밀번호가 틀렸습니다.');
-  }
+  openTeacherPanel();
 }
 
 function openTeacherPanel() {
@@ -670,9 +637,6 @@ document.getElementById('gradeBtn').addEventListener('click', gradeRound);
 document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscreen);
 document.getElementById('newGameBtn').addEventListener('click', newGame);
 document.getElementById('teacherBtn').addEventListener('click', handleTeacherClick);
-document.getElementById('pwOk').addEventListener('click', checkPassword);
-document.getElementById('pwCancel').addEventListener('click', () => document.getElementById('pwModal').classList.add('hidden'));
-document.getElementById('pwInput').addEventListener('keydown', e => { if (e.key === 'Enter') checkPassword(); });
 document.getElementById('teacherSave').addEventListener('click', saveTeacherAnswers);
 document.getElementById('teacherClose').addEventListener('click', () => document.getElementById('teacherPanel').classList.add('hidden'));
 
