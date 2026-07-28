@@ -1,4 +1,5 @@
 <title>생태 동물원 설계 시뮬레이션</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   :root{
     --paper:#F1EDE1;
@@ -78,10 +79,16 @@
 
   /* ---------- top bar ---------- */
   .topbar{
-    display:flex; align-items:baseline; justify-content:space-between;
-    gap:16px; padding-bottom:16px; margin-bottom:20px;
+    display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap;
+    gap:10px 16px; padding-bottom:16px; margin-bottom:20px;
     border-bottom:2px solid var(--line);
   }
+  .topbar-actions{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .save-link{
+    background:none; border:1px solid var(--line); color:var(--ink-soft); font-size:.78rem;
+    padding:5px 11px; border-radius:999px; cursor:pointer;
+  }
+  .save-link:hover{ border-color:var(--moss); color:var(--moss-deep); }
   .brand{ display:flex; flex-direction:column; gap:2px; }
   .brand .title{ font-size:1.05rem; font-weight:700; letter-spacing:-.01em; }
   .steps{ display:flex; gap:4px; }
@@ -392,6 +399,7 @@
 
 <div id="shell"></div>
 <div id="printSheet"></div>
+<input type="file" id="importFileInput" accept="application/json" style="display:none">
 
 <script>
 (function(){
@@ -498,27 +506,38 @@
       returnScreen:'intro'
     };
   }
+  function sanitizeState(parsed){
+    if(!parsed || typeof parsed!=='object' || !parsed.design) return null;
+    if(!Array.isArray(parsed.masterplan)) parsed.masterplan = [];
+    // 이전 버전(연구/설계 스냅샷이 없던 시절)에 저장된 항목은 새 화면 렌더링과 호환되지 않으므로 제거
+    parsed.masterplan = parsed.masterplan.filter(function(m){
+      return m && m.design && m.research && byId(m.animalId);
+    });
+    // 구역 배치 기능 이전에 저장된 항목은 zoneIndex가 없으므로 새로 배정
+    parsed.masterplan.forEach(function(m, i){
+      if(typeof m.zoneIndex !== 'number'){
+        m.zoneIndex = pickZoneIndexForAnimal(byId(m.animalId), parsed.masterplan, i);
+      }
+    });
+    if(typeof parsed.zooEvaluated !== 'boolean') parsed.zooEvaluated = false;
+    if(!parsed.returnScreen) parsed.returnScreen = 'intro';
+    if(!parsed.research) parsed.research = {habitat:'',social:'',food:'',threat:''};
+    if(!parsed.design.terrain) parsed.design.terrain = [];
+    if(!parsed.design.enrichment) parsed.design.enrichment = [];
+    if(!parsed.design.groupCount) parsed.design.groupCount = 1;
+    if(parsed.design.campaign===undefined) parsed.design.campaign = null;
+    if(typeof parsed.design.campaignBonus !== 'number') parsed.design.campaignBonus = 0;
+    if(!parsed.screen) parsed.screen = 'intro';
+    if(typeof parsed.maxStep !== 'number') parsed.maxStep = 0;
+    if(parsed.animalId===undefined) parsed.animalId = null;
+    if(parsed.screen==='masterplan' && parsed.masterplan.length===0 && !parsed.animalId) parsed.screen = 'select';
+    return parsed;
+  }
   function loadState(){
     try{
       var raw = localStorage.getItem(STORAGE_KEY);
       if(!raw) return null;
-      var parsed = JSON.parse(raw);
-      if(!parsed.design) return null;
-      if(!Array.isArray(parsed.masterplan)) parsed.masterplan = [];
-      // 이전 버전(연구/설계 스냅샷이 없던 시절)에 저장된 항목은 새 화면 렌더링과 호환되지 않으므로 제거
-      parsed.masterplan = parsed.masterplan.filter(function(m){
-        return m && m.design && m.research && byId(m.animalId);
-      });
-      // 구역 배치 기능 이전에 저장된 항목은 zoneIndex가 없으므로 새로 배정
-      parsed.masterplan.forEach(function(m, i){
-        if(typeof m.zoneIndex !== 'number'){
-          m.zoneIndex = pickZoneIndexForAnimal(byId(m.animalId), parsed.masterplan, i);
-        }
-      });
-      if(typeof parsed.zooEvaluated !== 'boolean') parsed.zooEvaluated = false;
-      if(!parsed.returnScreen) parsed.returnScreen = 'intro';
-      if(parsed.screen==='masterplan' && parsed.masterplan.length===0 && !parsed.animalId) parsed.screen = 'select';
-      return parsed;
+      return sanitizeState(JSON.parse(raw));
     }catch(e){ return null; }
   }
   function saveState(){
@@ -807,8 +826,10 @@
       '<div class="topbar">'+
         '<div class="brand"><span class="eyebrow">Eco Zoo Design Lab</span><span class="title">생태 동물원 설계 시뮬레이션</span></div>'+
         (state.animalId && state.screen!=='masterplan' ? '<div class="steps">'+tabs+'</div>' : '')+
-        '<div style="display:flex;align-items:center;gap:10px;">'+
+        '<div class="topbar-actions">'+
           '<button class="mp-link" onclick="App.viewMasterplan()">🏞️ 나의 동물원 ('+state.masterplan.length+'/3)</button>'+
+          '<button class="save-link" onclick="App.exportProgress()" title="지금까지 진행 상황을 파일로 저장해요. 다른 기기에서도 이 파일로 이어할 수 있어요.">💾 저장</button>'+
+          '<button class="save-link" onclick="App.triggerImport()" title="저장해둔 파일을 불러와 이어서 진행해요.">📂 불러오기</button>'+
           '<button class="reset-link" onclick="App.reset()">처음부터 다시하기</button>'+
         '</div>'+
       '</div>';
@@ -1404,8 +1425,46 @@
       var sheet = document.getElementById('printSheet');
       sheet.innerHTML = buildPrintSheetHtml();
       window.print();
+    },
+    exportProgress: function(){
+      var ts = new Date();
+      var pad = function(n){ return String(n).padStart(2,'0'); };
+      var stamp = ts.getFullYear()+pad(ts.getMonth()+1)+pad(ts.getDate())+'_'+pad(ts.getHours())+pad(ts.getMinutes());
+      var blob = new Blob([JSON.stringify(state)], {type:'application/json'});
+      var url = URL.createObjectURL(blob);
+      var link = document.createElement('a');
+      link.href = url; link.download = 'ecozoo_save_'+stamp+'.json';
+      document.body.appendChild(link); link.click(); document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    },
+    triggerImport: function(){
+      var input = document.getElementById('importFileInput');
+      if(input) input.click();
     }
   };
+
+  function handleImportFileSelected(file){
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e){
+      var sanitized = null;
+      try{ sanitized = sanitizeState(JSON.parse(e.target.result)); }catch(err){ sanitized = null; }
+      if(!sanitized){ alert('올바른 저장 파일이 아니에요. 이 시뮬레이션에서 "진행 상황 저장"으로 받은 파일인지 확인해주세요.'); return; }
+      state = sanitized;
+      saveState();
+      render();
+      alert('진행 상황을 불러왔습니다!');
+    };
+    reader.onerror = function(){ alert('파일을 읽는 중 문제가 발생했어요.'); };
+    reader.readAsText(file);
+  }
+  var importInputEl = document.getElementById('importFileInput');
+  if(importInputEl){
+    importInputEl.addEventListener('change', function(){
+      if(importInputEl.files && importInputEl.files[0]) handleImportFileSelected(importInputEl.files[0]);
+      importInputEl.value = '';
+    });
+  }
 
   render();
 })();
