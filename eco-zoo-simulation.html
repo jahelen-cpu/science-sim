@@ -228,6 +228,18 @@
   .field-group{ margin-bottom:20px; }
   .field-title{ font-weight:700; font-size:.92rem; margin-bottom:2px; }
   .field-sub{ font-size:.78rem; color:var(--ink-soft); margin-bottom:10px; }
+  .submitter-row{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .submitter-label{ font-size:.84rem; font-weight:700; width:52px; flex:none; }
+  .sid-wrap{ display:flex; align-items:center; gap:2px; font-size:.9rem; color:var(--ink-soft); }
+  .sid-wrap input{
+    width:52px; text-align:center; border:1px solid var(--line); border-radius:6px; padding:6px 4px;
+    background:var(--paper); color:var(--ink); font-family:inherit; font-size:.9rem;
+  }
+  .submitter-name{
+    flex:1; min-width:0; border:1px solid var(--line); border-radius:6px; padding:6px 10px;
+    background:var(--paper); color:var(--ink); font-family:inherit; font-size:.9rem;
+  }
+  .sid-wrap input:focus, .submitter-name:focus{ outline:2px solid var(--moss); outline-offset:1px; }
   .tier-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
   @media (max-width:480px){ .tier-grid{ grid-template-columns:1fr 1fr; } }
   .tier-btn{
@@ -503,7 +515,8 @@
       design:{spaceTier:null, terrain:[], enrichment:[], groupCount:1, campaign:null, campaignBonus:0},
       masterplan:[],
       zooEvaluated:false,
-      returnScreen:'intro'
+      returnScreen:'intro',
+      submitters:[{sid:'',name:''},{sid:'',name:''}]
     };
   }
   function sanitizeState(parsed){
@@ -530,6 +543,13 @@
     if(!parsed.screen) parsed.screen = 'intro';
     if(typeof parsed.maxStep !== 'number') parsed.maxStep = 0;
     if(parsed.animalId===undefined) parsed.animalId = null;
+    if(!Array.isArray(parsed.submitters) || parsed.submitters.length!==2){
+      parsed.submitters = [{sid:'',name:''},{sid:'',name:''}];
+    }
+    parsed.submitters.forEach(function(s){
+      if(typeof s.sid!=='string') s.sid='';
+      if(typeof s.name!=='string') s.name='';
+    });
     if(parsed.screen==='masterplan' && parsed.masterplan.length===0 && !parsed.animalId) parsed.screen = 'select';
     return parsed;
   }
@@ -876,7 +896,7 @@
     {key:'habitat', label:'① 서식지 환경 조사', hint:'이 동물은 어떤 기후와 지형에서 살아가나요? (온도, 습도, 지형 등)'},
     {key:'social',  label:'② 사회적 습성 조사', hint:'혼자 사는 동물인가요, 무리를 짓나요? 무리라면 몇 마리 정도가 자연스러운가요?'},
     {key:'food',    label:'③ 먹이·행동 조사', hint:'무엇을 먹고, 어떤 자연 행동(놀이·사냥·탐색 등)을 하나요?'},
-    {key:'threat',  label:'④ 인간과의 관계 조사', hint:'이 동물은 왜 인간과 특별히 연관되어 있나요? (멸종위기 여부, 서식지 파괴 원인 등)'}
+    {key:'threat',  label:'④ 참고 사항 조사', hint:'참고 사항(예: 멸종위기 여부, 인간과의 관계, 지구에서 사라지고 있는 이유, 특별한 점 등)'}
   ];
 
   var RESEARCH_MIN_LEN = 20;
@@ -1242,7 +1262,14 @@
     }
 
     var evalBtnDisabled = !full;
-    var pdfBtnDisabled = !(state.zooEvaluated && full);
+    var submitterRows = state.submitters.map(function(s, i){
+      return '<div class="submitter-row">'+
+        '<span class="submitter-label">학생 '+(i+1)+'</span>'+
+        '<span class="sid-wrap">(<input type="text" inputmode="numeric" maxlength="4" data-sub-sid="'+i+'" placeholder="학번" value="'+escapeHtml(s.sid)+'">)</span>'+
+        '<input type="text" maxlength="12" class="submitter-name" data-sub-name="'+i+'" placeholder="이름" value="'+escapeHtml(s.name)+'">'+
+      '</div>';
+    }).join('');
+    var pdfBtnDisabled = !(state.zooEvaluated && full && submittersOk());
 
     shell.innerHTML = topbarHtml() + ''+
     '<div class="card">'+
@@ -1251,14 +1278,40 @@
       '<div class="section-sub">5개 서식 구역 중 추가한 동물의 기후·크기·서식 환경에 맞는 곳에 자동으로 배치돼요. 최대 3마리까지 채울 수 있어요.</div>'+
       buildMasterplanSVG()+
       '<div class="mp-slots">'+slotsHtml+'</div>'+
+      '<div class="field-group" style="margin-top:18px;">'+
+        '<div class="field-title">제출자 정보 (2인 1조)</div>'+
+        '<div class="field-sub">최소 한 명의 학번·이름을 입력해야 PDF를 저장할 수 있어요. 짝이 없다면 한 명만 입력해도 됩니다.</div>'+
+        submitterRows+
+        '<div class="q-status" id="submitterStatus">'+(submittersOk()?'✓ 제출자 정보가 입력됐어요':'학번과 이름을 최소 한 명 입력해주세요')+'</div>'+
+      '</div>'+
       '<div class="btn-row"><button class="btn ghost" onclick="App.closeMasterplan()">← 돌아가기</button>'+
       '<div class="right">'+
         '<button class="btn" '+(evalBtnDisabled?'disabled':'')+' onclick="App.evaluateZoo()">🏆 전체 동물원 평가</button>'+
-        '<button class="btn ghost" '+(pdfBtnDisabled?'disabled':'')+' onclick="App.downloadPdf()">📄 제출용 PDF 저장</button>'+
+        '<button class="btn ghost" id="pdfSubmitBtn" '+(pdfBtnDisabled?'disabled':'')+' onclick="App.downloadPdf()">📄 제출용 PDF 저장</button>'+
         (state.masterplan.length<3? '<button class="btn" onclick="App.nav(\'select\')">동물 추가하러 가기</button>' : '')+
       '</div></div>'+
-      '<div style="margin-top:8px;font-size:.82rem;color:var(--mist);">'+(pdfBtnDisabled? '⚠ 먼저 "전체 동물원 평가"를 완료해야 제출용 PDF를 저장할 수 있어요. ' : '')+'PDF 저장 버튼을 누르면 인쇄 대화상자가 열려요. 대상(프린터)을 <b>PDF로 저장</b>으로 선택하면 파일로 저장됩니다.</div>'+
+      '<div style="margin-top:8px;font-size:.82rem;color:var(--mist);">'+(!state.zooEvaluated||!full? '⚠ 먼저 "전체 동물원 평가"를 완료해야 제출용 PDF를 저장할 수 있어요. ' : '')+'PDF 저장 버튼을 누르면 인쇄 대화상자가 열려요. 대상(프린터)을 <b>PDF로 저장</b>으로 선택하면 파일로 저장됩니다.</div>'+
     '</div>';
+
+    [0,1].forEach(function(i){
+      var sidEl = shell.querySelector('input[data-sub-sid="'+i+'"]');
+      var nameEl = shell.querySelector('input[data-sub-name="'+i+'"]');
+      sidEl.addEventListener('input', function(){ state.submitters[i].sid = sidEl.value; saveState(); updateSubmitterGate(); });
+      nameEl.addEventListener('input', function(){ state.submitters[i].name = nameEl.value; saveState(); updateSubmitterGate(); });
+    });
+  }
+  function submittersOk(){
+    return state.submitters.some(function(s){ return s.name.trim().length>0 && s.sid.trim().length>0; });
+  }
+  function updateSubmitterGate(){
+    var btn = document.getElementById('pdfSubmitBtn');
+    var statusEl = document.getElementById('submitterStatus');
+    var ok = submittersOk();
+    if(statusEl){
+      statusEl.textContent = ok ? '✓ 제출자 정보가 입력됐어요' : '학번과 이름을 최소 한 명 입력해주세요';
+      statusEl.className = 'q-status'+(ok?' ok':'');
+    }
+    if(btn) btn.disabled = !(state.zooEvaluated && state.masterplan.length===3 && ok);
   }
 
   function buildPrintSheetHtml(){
@@ -1274,7 +1327,7 @@
             '<tr><th>① 서식지 환경</th><td>'+escapeHtml(r.habitat||'(작성 없음)')+'</td></tr>'+
             '<tr><th>② 사회적 습성</th><td>'+escapeHtml(r.social||'(작성 없음)')+'</td></tr>'+
             '<tr><th>③ 먹이·행동</th><td>'+escapeHtml(r.food||'(작성 없음)')+'</td></tr>'+
-            '<tr><th>④ 인간과의 관계</th><td>'+escapeHtml(r.threat||'(작성 없음)')+'</td></tr>'+
+            '<tr><th>④ 참고 사항</th><td>'+escapeHtml(r.threat||'(작성 없음)')+'</td></tr>'+
           '</table>'+
           '<h3>서식지 설계</h3>'+
           '<table class="ps-table">'+
@@ -1300,10 +1353,14 @@
     var mapSection = state.masterplan.length
       ? '<section class="ps-map">'+gradeBadge+'<h2>🏞️ 나의 동물원 설계도</h2>'+buildMasterplanSVG()+'</section>'
       : '';
+    var submitterNames = state.submitters
+      .filter(function(s){ return s.name.trim(); })
+      .map(function(s){ return (s.sid.trim() ? '('+s.sid.trim()+') ' : '') + s.name.trim(); })
+      .join('   ·   ');
     return ''+
       '<div class="ps-header">'+
         '<h1>생태 동물원 설계 시뮬레이션 — 수행평가 제출물</h1>'+
-        '<div class="ps-meta"><span>이름: ______________</span><span>제출일: '+todayStr+'</span></div>'+
+        '<div class="ps-meta"><span>제출자: '+escapeHtml(submitterNames||'______________')+'</span><span>제출일: '+todayStr+'</span></div>'+
         zooGradeLine+
         '<blockquote>인간과 동물은 서로 영향을 주고받는 관계에 있으며, 더 큰 힘을 가진 인간이 동물의 기본적 권리를 존중하고 그에 따르는 책임을 다할 때 서로 다른 존재가 함께 살아가는 공존이 가능해집니다.</blockquote>'+
       '</div>'+
