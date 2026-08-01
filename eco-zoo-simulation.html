@@ -232,7 +232,7 @@
   .submitter-label{ font-size:.84rem; font-weight:700; width:52px; flex:none; }
   .sid-wrap{ display:flex; align-items:center; gap:2px; font-size:.9rem; color:var(--ink-soft); }
   .sid-wrap input{
-    width:52px; text-align:center; border:1px solid var(--line); border-radius:6px; padding:6px 4px;
+    width:82px; text-align:center; border:1px solid var(--line); border-radius:6px; padding:6px 4px;
     background:var(--paper); color:var(--ink); font-family:inherit; font-size:.9rem;
   }
   .submitter-name{
@@ -1215,7 +1215,10 @@
       '<div class="reflection"><b>공존을 위한 질문 —</b> '+reflect+'</div>'+
       buildMasterplanActionHtml(a, scores)+
       '<div class="btn-row"><button class="btn ghost" onclick="App.nav(\'design\')">← 다시 설계하기</button>'+
-      '<div class="right"><button class="btn" onclick="App.restartWithNewAnimal()">다른 동물로 새로 시작</button></div></div>'+
+      '<div class="right">'+(state.masterplan.length>=3
+        ? '<button class="btn" onclick="App.viewMasterplan()">🏞️ 동물원 설계도로 이동</button>'
+        : '<button class="btn" onclick="App.restartWithNewAnimal()">다른 동물로 새로 시작</button>')+
+      '</div></div>'+
     '</div>';
   }
 
@@ -1301,7 +1304,7 @@
     });
   }
   function submittersOk(){
-    return state.submitters.some(function(s){ return s.name.trim().length>0 && s.sid.trim().length>0; });
+    return state.submitters.some(function(s){ return s.name.trim().length>0 || s.sid.trim().length>0; });
   }
   function updateSubmitterGate(){
     var btn = document.getElementById('pdfSubmitBtn');
@@ -1354,8 +1357,12 @@
       ? '<section class="ps-map">'+gradeBadge+'<h2>🏞️ 나의 동물원 설계도</h2>'+buildMasterplanSVG()+'</section>'
       : '';
     var submitterNames = state.submitters
-      .filter(function(s){ return s.name.trim(); })
-      .map(function(s){ return (s.sid.trim() ? '('+s.sid.trim()+') ' : '') + s.name.trim(); })
+      .filter(function(s){ return s.name.trim() || s.sid.trim(); })
+      .map(function(s){
+        var sidPart = s.sid.trim() ? '('+s.sid.trim()+')' : '';
+        var namePart = s.name.trim();
+        return (sidPart+' '+namePart).trim();
+      })
       .join('   ·   ');
     return ''+
       '<div class="ps-header">'+
