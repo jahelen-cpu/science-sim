@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>렌츠의 법칙 시뮬레이션 - 유도 전류 실험</title>
+<style>
+  :root{
+    --bg:#eef2f7;
+    --panel-bg:#ffffff;
+    --ink:#1f2937;
+    --sub:#6b7280;
+    --n-color:#e04b3a;
+    --s-color:#2f6fd6;
+    --accent:#2f6fd6;
+    --border:#dbe2ea;
+    --wire:#b5651d;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    min-height:100vh;
+  }
+  .app{
+    max-width:1000px;
+    margin:0 auto;
+    padding:16px 16px 32px;
+  }
+  header{
+    text-align:center;
+    margin-bottom:18px;
+  }
+  header h1{
+    font-size:1.6rem;
+    margin:0 0 4px;
+  }
+  header p{
+    margin:0;
+    color:var(--sub);
+    font-size:0.94rem;
+  }
+  .main{
+    display:flex;
+    gap:22px;
+    flex-wrap:wrap;
+    align-items:flex-start;
+    justify-content:center;
+  }
+  .stage-wrap{
+    background:var(--panel-bg);
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:16px;
+    box-shadow:0 8px 24px rgba(20,30,50,0.08);
+    flex:0 0 auto;
+    width:552px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  #stage{
+    width:520px;
+    height:557px;
+    touch-action:none;
+    display:block;
+  }
+  #coilFront{
+    filter: drop-shadow(0 3px 2px rgba(0,0,0,0.15));
+  }
+  .chart-box{
+    margin-top:10px;
+    width:520px;
+  }
+  .chart-box .label-row{
+    display:flex;
+    justify-content:space-between;
+    font-size:0.85rem;
+    color:var(--sub);
+    margin-bottom:4px;
+  }
+  #chart{
+    width:100%;
+    height:100px;
+    background:#f8fafc;
+    border:1px solid var(--border);
+    border-radius:8px;
+    display:block;
+  }
+  .panel{
+    background:var(--panel-bg);
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:20px 22px;
+    box-shadow:0 8px 24px rgba(20,30,50,0.08);
+    width:380px;
+    flex:0 0 auto;
+  }
+  .panel h2{
+    font-size:1.05rem;
+    margin:0 0 12px;
+    padding-bottom:7px;
+    border-bottom:2px solid var(--border);
+  }
+  .section{
+    margin-bottom:22px;
+  }
+  .option-cards{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:10px;
+  }
+  .option-card{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+    padding:10px 6px 12px;
+    border-radius:12px;
+    border:2px solid var(--border);
+    background:#fbfcfe;
+    cursor:pointer;
+  }
+  .option-card:hover{
+    border-color:#b9c6d6;
+    background:#f3f6fa;
+  }
+  .option-card.selected{
+    border-color:var(--accent);
+    background:rgba(47,111,214,0.08);
+    box-shadow:0 0 0 3px rgba(47,111,214,0.12);
+  }
+  .option-card svg{ display:block; }
+  .option-card span{
+    font-size:0.86rem;
+    font-weight:700;
+    color:var(--ink);
+  }
+  .option-card.selected span{ color:var(--accent); }
+  .hint{
+    font-size:0.82rem;
+    color:var(--sub);
+    margin-top:10px;
+    line-height:1.5;
+  }
+  .drag-callout{
+    background:linear-gradient(135deg, rgba(47,111,214,0.1), rgba(47,111,214,0.04));
+    border-left:5px solid var(--accent);
+    border-radius:10px;
+    padding:14px 16px;
+    font-size:1.02rem;
+    font-weight:700;
+    line-height:1.5;
+    margin-bottom:14px;
+    color:#1e3a6b;
+  }
+  .btn-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+  }
+  .btn{
+    padding:11px 8px;
+    border-radius:10px;
+    border:1px solid var(--border);
+    background:#f3f6fa;
+    cursor:pointer;
+    font-size:0.9rem;
+    font-weight:700;
+    color:var(--ink);
+  }
+  .btn:hover{ background:#e9eef5; }
+  .btn.primary{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#fff;
+  }
+  .btn.primary:hover{ background:#2a63c2; }
+  .btn.stop{
+    background:#fff;
+    color:#b3261e;
+    border-color:#f0c6c2;
+  }
+  #magnet{ cursor:grab; }
+  #magnet:active{ cursor:grabbing; }
+  @media (max-width: 960px){
+    .stage-wrap{ width:100%; max-width:552px; }
+    #stage{ width:100%; height:auto; aspect-ratio:520/557; }
+    .chart-box{ width:100%; }
+    .panel{ width:100%; max-width:552px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>⚡ 렌츠의 법칙 시뮬레이션</h1>
+    <p>자석을 클릭해 극을 바꾸고, 세기와 코일의 촘촘함을 선택한 뒤 자석을 직접 드래그해 코일에 넣었다 빼보세요.</p>
+  </header>
+
+  <div class="main">
+    <div class="stage-wrap">
+      <svg id="stage" viewBox="0 0 560 600" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="copperFront" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#7a4a1e"/>
+            <stop offset="15%" stop-color="#c97b3d"/>
+            <stop offset="50%" stop-color="#f4c58a"/>
+            <stop offset="85%" stop-color="#c97b3d"/>
+            <stop offset="100%" stop-color="#7a4a1e"/>
+          </linearGradient>
+          <linearGradient id="copperBack" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#c99a6a" stop-opacity="0.55"/>
+            <stop offset="50%" stop-color="#ecd0ac" stop-opacity="0.65"/>
+            <stop offset="100%" stop-color="#c99a6a" stop-opacity="0.55"/>
+          </linearGradient>
+          <filter id="strongGlow" x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur stdDeviation="6" result="blur"/>
+            <feMerge>
+              <feMergeNode in="blur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+
+        <!-- 검류계 케이스 -->
+        <rect x="190" y="15" width="180" height="130" rx="14" fill="#2b3444"></rect>
+        <rect x="198" y="23" width="164" height="98" rx="10" fill="#f4f1ea"></rect>
+
+        <!-- 다이얼 아크 -->
+        <path d="M195.4 79.2 A90 90 0 0 1 364.6 79.2" fill="none" stroke="#9aa3b2" stroke-width="2"></path>
+        <!-- 눈금 -->
+        <line x1="202.1" y1="65" x2="214.2" y2="72" stroke="#6b7280" stroke-width="2"></line>
+        <line x1="235" y1="32.1" x2="242" y2="44.2" stroke="#6b7280" stroke-width="2"></line>
+        <line x1="280" y1="20" x2="280" y2="34" stroke="#6b7280" stroke-width="2"></line>
+        <line x1="325" y1="32.1" x2="318" y2="44.2" stroke="#6b7280" stroke-width="2"></line>
+        <line x1="357.9" y1="65" x2="345.8" y2="72" stroke="#6b7280" stroke-width="2"></line>
+        <text x="192" y="100" font-size="12" fill="#6b7280" text-anchor="middle">−</text>
+        <text x="280" y="50" font-size="11" fill="#6b7280" text-anchor="middle">0</text>
+        <text x="368" y="100" font-size="12" fill="#6b7280" text-anchor="middle">+</text>
+        <text x="280" y="132" font-size="11" fill="#6b7280" text-anchor="middle">검류계 (電流計)</text>
+
+        <!-- 바늘 -->
+        <line id="needle" x1="280" y1="110" x2="280" y2="30" stroke="#c0392b" stroke-width="3" stroke-linecap="round" transform="rotate(0 280 110)"></line>
+        <circle cx="280" cy="110" r="5" fill="#2b3444"></circle>
+
+        <!-- 단자/전선 -->
+        <circle cx="205" cy="145" r="4" fill="#3a3f4b"></circle>
+        <circle cx="355" cy="145" r="4" fill="#3a3f4b"></circle>
+        <line x1="205" y1="145" x2="205" y2="380" stroke="#b5651d" stroke-width="5" stroke-linecap="round"></line>
+        <line x1="355" y1="145" x2="355" y2="380" stroke="#b5651d" stroke-width="5" stroke-linecap="round"></line>
+
+        <!-- 코일 그림자(입체감) -->
+        <ellipse cx="280" cy="586" rx="82" ry="13" fill="#000000" opacity="0.08"></ellipse>
+
+        <!-- 코일 좌우 레일(입체감) -->
+        <line x1="205" y1="380" x2="205" y2="580" stroke="url(#copperFront)" stroke-width="2" opacity="0.35"></line>
+        <line x1="355" y1="380" x2="355" y2="580" stroke="url(#copperFront)" stroke-width="2" opacity="0.35"></line>
+
+        <!-- 코일 뒤쪽(자석 뒤로 가려지는 부분) -->
+        <g id="coilBack"></g>
+
+        <!-- 유도 자극 표시 -->
+        <text id="poleLabel" x="280" y="368" font-size="22" font-weight="700" text-anchor="middle" fill="#374151" opacity="0"></text>
+
+        <!-- 자석 -->
+        <g id="magnet">
+          <rect x="225" y="-8" width="110" height="156" fill="transparent"></rect>
+          <rect id="magTop" x="248" y="0" width="64" height="70" fill="#2f6fd6"></rect>
+          <rect id="magBottom" x="248" y="70" width="64" height="70" fill="#e04b3a"></rect>
+          <rect id="magOutline" x="248" y="0" width="64" height="140" fill="none" stroke="#1f2937" stroke-width="2"></rect>
+          <text id="magTopLabel" x="280" y="42" font-size="26" font-weight="800" text-anchor="middle" fill="#fff">S</text>
+          <text id="magBottomLabel" x="280" y="112" font-size="26" font-weight="800" text-anchor="middle" fill="#fff">N</text>
+        </g>
+
+        <!-- 코일 앞쪽(전선/화살표 포함) -->
+        <g id="coilFront"></g>
+      </svg>
+
+      <div class="chart-box">
+        <div class="label-row">
+          <span>유도 전류 (시간에 따른 변화)</span>
+          <span>+ / 0 / −</span>
+        </div>
+        <canvas id="chart" width="800" height="100"></canvas>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="section">
+        <h2>🧲 자석 세기 선택</h2>
+        <div class="option-cards" id="strengthCards">
+          <button type="button" class="option-card" data-key="weak">
+            <svg width="34" height="62" viewBox="0 0 40 74">
+              <rect x="12" y="2" width="16" height="33" fill="#bcd4f3"></rect>
+              <rect x="12" y="35" width="16" height="33" fill="#f3c4bc"></rect>
+              <rect x="12" y="2" width="16" height="66" fill="none" stroke="#9aa3b2" stroke-width="1.5"></rect>
+            </svg>
+            <span>약함</span>
+          </button>
+          <button type="button" class="option-card selected" data-key="medium">
+            <svg width="34" height="62" viewBox="0 0 40 74">
+              <rect x="8" y="2" width="24" height="33" fill="#2f6fd6"></rect>
+              <rect x="8" y="35" width="24" height="33" fill="#e04b3a"></rect>
+              <rect x="8" y="2" width="24" height="66" fill="none" stroke="#1f2937" stroke-width="2"></rect>
+            </svg>
+            <span>보통</span>
+          </button>
+          <button type="button" class="option-card" data-key="strong">
+            <svg width="34" height="62" viewBox="0 0 40 74">
+              <rect x="4" y="2" width="32" height="33" fill="#123e8a"></rect>
+              <rect x="4" y="35" width="32" height="33" fill="#7a1710"></rect>
+              <rect x="4" y="2" width="32" height="66" fill="none" stroke="#000" stroke-width="2.5"></rect>
+            </svg>
+            <span>강함</span>
+          </button>
+        </div>
+        <p class="hint">💡 무대 위의 자석을 <b>클릭</b>하면 극(N ↔ S)이 180˚ 뒤집힙니다.</p>
+      </div>
+
+      <div class="section">
+        <h2>🌀 코일 촘촘함 선택</h2>
+        <div class="option-cards" id="coilCards">
+          <button type="button" class="option-card" data-key="loose">
+            <svg width="52" height="62" viewBox="0 0 60 74">
+              <ellipse cx="30" cy="10" rx="24" ry="7" fill="none" stroke="#b5651d" stroke-width="3"></ellipse>
+              <ellipse cx="30" cy="37" rx="24" ry="7" fill="none" stroke="#b5651d" stroke-width="3"></ellipse>
+              <ellipse cx="30" cy="64" rx="24" ry="7" fill="none" stroke="#b5651d" stroke-width="3"></ellipse>
+            </svg>
+            <span>성글게</span>
+          </button>
+          <button type="button" class="option-card selected" data-key="medium">
+            <svg width="52" height="62" viewBox="0 0 60 74">
+              <ellipse cx="30" cy="7" rx="24" ry="6" fill="none" stroke="#b5651d" stroke-width="3"></ellipse>
+              <ellipse cx="30" cy="21" rx="24" ry="6" fill="none" stroke="#b5651d" stroke-width="3"></ellipse>
+              <ellipse cx="30" cy="35" rx="24" ry="6" fill="none" stroke="#b5651d" stroke-width="3"></ellipse>
+              <ellipse cx="30" cy="49" rx="24" ry="6" fill="none" stroke="#b5651d" stroke-width="3"></ellipse>
+              <ellipse cx="30" cy="63" rx="24" ry="6" fill="none" stroke="#b5651d" stroke-width="3"></ellipse>
+            </svg>
+            <span>보통</span>
+          </button>
+          <button type="button" class="option-card" data-key="dense">
+            <svg width="52" height="62" viewBox="0 0 60 74">
+              <ellipse cx="30" cy="6" rx="24" ry="5" fill="none" stroke="#b5651d" stroke-width="2.5"></ellipse>
+              <ellipse cx="30" cy="15" rx="24" ry="5" fill="none" stroke="#b5651d" stroke-width="2.5"></ellipse>
+              <ellipse cx="30" cy="24" rx="24" ry="5" fill="none" stroke="#b5651d" stroke-width="2.5"></ellipse>
+              <ellipse cx="30" cy="33" rx="24" ry="5" fill="none" stroke="#b5651d" stroke-width="2.5"></ellipse>
+              <ellipse cx="30" cy="42" rx="24" ry="5" fill="none" stroke="#b5651d" stroke-width="2.5"></ellipse>
+              <ellipse cx="30" cy="51" rx="24" ry="5" fill="none" stroke="#b5651d" stroke-width="2.5"></ellipse>
+              <ellipse cx="30" cy="60" rx="24" ry="5" fill="none" stroke="#b5651d" stroke-width="2.5"></ellipse>
+              <ellipse cx="30" cy="69" rx="24" ry="5" fill="none" stroke="#b5651d" stroke-width="2.5"></ellipse>
+            </svg>
+            <span>빽빽하게</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>▶ 자석 움직이기</h2>
+        <div class="drag-callout">🖐 자석을 마우스(손가락)로 잡고<br>직접 드래그해서 코일에 넣었다 빼보세요!</div>
+        <div class="btn-grid">
+          <button class="btn primary" id="btnInsert">자석을 코일로 가져가기 ▼</button>
+          <button class="btn primary" id="btnRemove">자석을 코일에서 빼기 ▲</button>
+          <button class="btn stop" id="btnStop">정지</button>
+          <button class="btn" id="btnReset">초기화</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var svgNS = "http://www.w3.org/2000/svg";
+  var stage = document.getElementById("stage");
+  var coilBack = document.getElementById("coilBack");
+  var coilFront = document.getElementById("coilFront");
+  var magnet = document.getElementById("magnet");
+  var magTop = document.getElementById("magTop");
+  var magBottom = document.getElementById("magBottom");
+  var magOutline = document.getElementById("magOutline");
+  var magTopLabel = document.getElementById("magTopLabel");
+  var magBottomLabel = document.getElementById("magBottomLabel");
+  var needle = document.getElementById("needle");
+  var poleLabel = document.getElementById("poleLabel");
+  var strengthCards = document.querySelectorAll("#strengthCards .option-card");
+  var coilCards = document.querySelectorAll("#coilCards .option-card");
+  var chart = document.getElementById("chart");
+  var chartCtx = chart.getContext("2d");
+
+  var CX = 280;
+  var COIL_TOP = 380;
+  var COIL_BOTTOM = 580;
+  var COIL_RX = 75;
+  var COIL_RY = 16;
+  var MAGNET_HALF_H = 70;
+  var MAGNET_Y_MIN = 238;
+  var MAGNET_Y_MAX = 480;
+  var W = 35;               // 자속 변화 전이 구간 폭
+  var EMF_TO_CURRENT_SCALE = 45;
+  var CHART_WINDOW = 6000;  // ms
+  var AUTO_SPEED = 150;     // px/s, 자동 넣기/빼기 고정 속도
+  var FLIP_DURATION = 320;  // ms
+
+  var STRENGTH_PRESETS = {
+    weak:   { value: 0.7, width: 34, colorN: "#f3c4bc", colorS: "#bcd4f3", stroke: "#9aa3b2", strokeW: 1.5, font: 18, glow: false },
+    medium: { value: 1.6, width: 64, colorN: "#e04b3a", colorS: "#2f6fd6", stroke: "#1f2937", strokeW: 2,   font: 26, glow: false },
+    strong: { value: 2.8, width: 98, colorN: "#7a1710", colorS: "#123e8a", stroke: "#000000", strokeW: 3,   font: 32, glow: true }
+  };
+  var COIL_PRESETS = { loose: 4, medium: 8, dense: 16 };
+
+  var state = {
+    poleFacingCoil: "N",   // 코일을 향하는(아래쪽) 극
+    strengthKey: "medium",
+    turns: COIL_PRESETS.medium,
+    mode: "idle",           // idle | drag | auto
+    autoDir: 0,
+    magnetCenterY: MAGNET_Y_MIN,
+    dragStartClientX: 0,
+    dragStartClientY: 0,
+    dragStartCenter: 0,
+    flipScaleX: 1
+  };
+
+  var flipAnim = { active: false, start: 0, toPole: null };
+  var COPPER_FRONT = "url(#copperFront)";
+  var COPPER_BACK = "url(#copperBack)";
+  var MAGENTA = "#d6249f";
+  var GREEN = "#1f9d55";
+
+  var prevFluxSigned = 0;
+  var prevTime = null;
+  var currentValue = 0;
+  var chartHistory = [];
+  var backArcs = [];
+  var frontArcs = [];
+  var arrows = [];
+
+  function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+  function sigmoid(x){ return 1 / (1 + Math.exp(-x)); }
+
+  function setAttrs(el, attrs){
+    for (var k in attrs){ el.setAttribute(k, attrs[k]); }
+  }
+
+  function currentFluxSigned(){
+    var tipY = state.magnetCenterY + MAGNET_HALF_H;
+    var d = tipY - COIL_TOP;
+    var fluxMag = STRENGTH_PRESETS[state.strengthKey].value * sigmoid(d / W);
+    var sign = state.poleFacingCoil === "N" ? 1 : -1;
+    return fluxMag * sign;
+  }
+
+  function buildCoil(turns){
+    coilBack.innerHTML = "";
+    coilFront.innerHTML = "";
+    backArcs = [];
+    frontArcs = [];
+    arrows = [];
+
+    var step = (COIL_BOTTOM - COIL_TOP) / turns;
+
+    for (var i = 0; i < turns; i++){
+      var yTop = COIL_TOP + i * step;
+      var yMid = yTop + step / 2;
+      var yBot = yTop + step;
+
+      // 뒤쪽 절반: 왼쪽에서 위로 넘어가 오른쪽(살짝 아래)으로 - 나선처럼 다음 감김과 이어짐
+      var back = document.createElementNS(svgNS, "path");
+      setAttrs(back, {
+        d: "M " + (CX - COIL_RX) + " " + yTop + " A " + COIL_RX + " " + COIL_RY + " 0 0 1 " + (CX + COIL_RX) + " " + yMid,
+        fill: "none", stroke: COPPER_BACK, "stroke-width": "4"
+      });
+      coilBack.appendChild(back);
+      backArcs.push(back);
+
+      // 앞쪽 절반: 오른쪽에서 아래로 넘어가 다음 감김의 왼쪽 시작점으로 이어짐
+      var front = document.createElementNS(svgNS, "path");
+      setAttrs(front, {
+        d: "M " + (CX + COIL_RX) + " " + yMid + " A " + COIL_RX + " " + COIL_RY + " 0 0 1 " + (CX - COIL_RX) + " " + yBot,
+        fill: "none", stroke: COPPER_FRONT, "stroke-width": "5"
+      });
+      coilFront.appendChild(front);
+      frontArcs.push(front);
+
+      var ax = CX;
+      var ay = yMid + (yBot - yMid) / 2 + COIL_RY * 0.85;
+      var arrow = document.createElementNS(svgNS, "path");
+      setAttrs(arrow, {
+        d: "M -8 -5 L 8 0 L -8 5 Z",
+        fill: GREEN,
+        opacity: "0",
+        transform: "translate(" + ax + "," + ay + ")"
+      });
+      coilFront.appendChild(arrow);
+      arrows.push(arrow);
+    }
+  }
+
+  function updateMagnetVisual(){
+    var preset = STRENGTH_PRESETS[state.strengthKey];
+    var nOnTop = state.poleFacingCoil === "S";
+    var w = preset.width;
+    var x = CX - w / 2;
+
+    setAttrs(magTop, { fill: nOnTop ? preset.colorN : preset.colorS, x: x, width: w });
+    setAttrs(magBottom, { fill: nOnTop ? preset.colorS : preset.colorN, x: x, width: w });
+    setAttrs(magOutline, { x: x, width: w, stroke: preset.stroke, "stroke-width": preset.strokeW });
+    magTopLabel.textContent = nOnTop ? "N" : "S";
+    magBottomLabel.textContent = nOnTop ? "S" : "N";
+    magTopLabel.setAttribute("font-size", preset.font);
+    magBottomLabel.setAttribute("font-size", preset.font);
+
+    if (preset.glow){ magnet.setAttribute("filter", "url(#strongGlow)"); }
+    else { magnet.removeAttribute("filter"); }
+
+    var y = state.magnetCenterY - MAGNET_HALF_H;
+    var sx = state.flipScaleX;
+    magnet.setAttribute("transform",
+      "translate(0," + y + ") translate(" + CX + ",0) scale(" + sx + ",1) translate(" + (-CX) + ",0)");
+  }
+
+  function drawChart(){
+    var w = chart.width, h = chart.height;
+    chartCtx.clearRect(0, 0, w, h);
+    chartCtx.strokeStyle = "#d1d9e2";
+    chartCtx.lineWidth = 1;
+    chartCtx.beginPath();
+    chartCtx.moveTo(0, h / 2);
+    chartCtx.lineTo(w, h / 2);
+    chartCtx.stroke();
+
+    if (chartHistory.length < 2) return;
+    var now = chartHistory[chartHistory.length - 1].t;
+    chartCtx.beginPath();
+    chartCtx.strokeStyle = "#2f6fd6";
+    chartCtx.lineWidth = 2;
+    for (var i = 0; i < chartHistory.length; i++){
+      var p = chartHistory[i];
+      var x = w - (now - p.t) / CHART_WINDOW * w;
+      var y = h / 2 - p.v * (h / 2 - 6);
+      if (i === 0) chartCtx.moveTo(x, y); else chartCtx.lineTo(x, y);
+    }
+    chartCtx.stroke();
+  }
+
+  function physicsStep(dt){
+    var fluxSigned = currentFluxSigned();
+
+    var dFlux = fluxSigned - prevFluxSigned;
+    var emf = dt > 0 ? -state.turns * (dFlux / dt) : 0;
+    var raw = emf / EMF_TO_CURRENT_SCALE;
+    currentValue = clamp(raw, -1, 1);
+    prevFluxSigned = fluxSigned;
+
+    var needleDeg = currentValue * 65;
+    needle.setAttribute("transform", "rotate(" + needleDeg.toFixed(1) + " 280 110)");
+
+    var nearPole = currentValue > 0 ? "S" : "N";
+    var showPole = Math.abs(currentValue) > 0.04;
+    poleLabel.setAttribute("opacity", showPole ? "1" : "0");
+    poleLabel.textContent = showPole ? nearPole + "극 유도" : "";
+    poleLabel.setAttribute("fill", nearPole === "N" ? "#e04b3a" : "#2f6fd6");
+
+    var mag = Math.abs(currentValue);
+    var flowColor = currentValue > 0 ? MAGENTA : GREEN;
+    var arcOpacity = showPole ? clamp(0.4 + mag, 0.4, 1) : 1;
+    var i, xy, t;
+
+    for (i = 0; i < frontArcs.length; i++){
+      frontArcs[i].setAttribute("stroke", showPole ? flowColor : COPPER_FRONT);
+      frontArcs[i].setAttribute("stroke-opacity", arcOpacity);
+    }
+    for (i = 0; i < backArcs.length; i++){
+      backArcs[i].setAttribute("stroke", showPole ? flowColor : COPPER_BACK);
+      backArcs[i].setAttribute("stroke-opacity", arcOpacity);
+    }
+
+    // 코일 앞면(하단 호) 기준: 시계 방향(current>0, 자홍색)일 때는 왼쪽으로,
+    // 반시계 방향(current<0, 초록색)일 때는 오른쪽으로 흐르는 것처럼 화살표가 향하게 함
+    var flip = currentValue > 0 ? -1 : 1;
+    for (i = 0; i < arrows.length; i++){
+      arrows[i].setAttribute("fill", flowColor);
+      arrows[i].setAttribute("opacity", showPole ? clamp(0.5 + mag, 0.5, 1) : "0");
+      t = arrows[i].getAttribute("transform").split("translate(")[1];
+      xy = t.split(")")[0];
+      arrows[i].setAttribute("transform", "translate(" + xy + ") scale(" + flip + ",1)");
+    }
+
+    var now = performance.now();
+    chartHistory.push({ t: now, v: currentValue });
+    while (chartHistory.length && now - chartHistory[0].t > CHART_WINDOW){
+      chartHistory.shift();
+    }
+    drawChart();
+  }
+
+  function loop(ts){
+    if (prevTime === null){ prevTime = ts; requestAnimationFrame(loop); return; }
+    var dt = Math.min((ts - prevTime) / 1000, 0.05);
+    prevTime = ts;
+
+    if (state.mode === "auto"){
+      var next = state.magnetCenterY + state.autoDir * AUTO_SPEED * dt;
+      if (state.autoDir > 0 && next >= MAGNET_Y_MAX){ next = MAGNET_Y_MAX; state.mode = "idle"; }
+      if (state.autoDir < 0 && next <= MAGNET_Y_MIN){ next = MAGNET_Y_MIN; state.mode = "idle"; }
+      state.magnetCenterY = next;
+    }
+
+    if (flipAnim.active){
+      var t = (ts - flipAnim.start) / FLIP_DURATION;
+      if (t >= 1){
+        t = 1;
+        flipAnim.active = false;
+      }
+      if (t >= 0.5 && state.poleFacingCoil !== flipAnim.toPole){
+        state.poleFacingCoil = flipAnim.toPole;
+        prevFluxSigned = currentFluxSigned();
+      }
+      state.flipScaleX = Math.abs(Math.cos(t * Math.PI));
+    } else {
+      state.flipScaleX = 1;
+    }
+
+    updateMagnetVisual();
+    physicsStep(dt);
+    requestAnimationFrame(loop);
+  }
+
+  // ---- 자석 세기 카드 ----
+  function selectStrength(key){
+    state.strengthKey = key;
+    strengthCards.forEach(function(c){ c.classList.toggle("selected", c.getAttribute("data-key") === key); });
+    prevFluxSigned = currentFluxSigned();
+  }
+  strengthCards.forEach(function(c){
+    c.addEventListener("click", function(){ selectStrength(c.getAttribute("data-key")); });
+  });
+
+  // ---- 코일 촘촘함 카드 ----
+  function selectCoil(key){
+    state.turns = COIL_PRESETS[key];
+    coilCards.forEach(function(c){ c.classList.toggle("selected", c.getAttribute("data-key") === key); });
+    buildCoil(state.turns);
+  }
+  coilCards.forEach(function(c){
+    c.addEventListener("click", function(){ selectCoil(c.getAttribute("data-key")); });
+  });
+
+  // ---- 이동 버튼 ----
+  document.getElementById("btnInsert").addEventListener("click", function(){
+    state.mode = "auto"; state.autoDir = 1;
+  });
+  document.getElementById("btnRemove").addEventListener("click", function(){
+    state.mode = "auto"; state.autoDir = -1;
+  });
+  document.getElementById("btnStop").addEventListener("click", function(){
+    state.mode = "idle";
+  });
+  document.getElementById("btnReset").addEventListener("click", function(){
+    state.mode = "idle";
+    state.magnetCenterY = MAGNET_Y_MIN;
+    chartHistory = [];
+    prevFluxSigned = currentFluxSigned();
+  });
+
+  // ---- 자석 클릭(극 뒤집기) / 드래그(이동) ----
+  var pointerActive = false;
+  var pointerMoved = false;
+
+  function triggerFlip(){
+    if (flipAnim.active) return;
+    flipAnim.active = true;
+    flipAnim.start = performance.now();
+    flipAnim.toPole = state.poleFacingCoil === "N" ? "S" : "N";
+  }
+
+  magnet.addEventListener("pointerdown", function(e){
+    pointerActive = true;
+    pointerMoved = false;
+    state.mode = "drag";
+    magnet.setPointerCapture(e.pointerId);
+    state.dragStartClientX = e.clientX;
+    state.dragStartClientY = e.clientY;
+    state.dragStartCenter = state.magnetCenterY;
+  });
+  magnet.addEventListener("pointermove", function(e){
+    if (!pointerActive) return;
+    var dist = Math.hypot(e.clientX - state.dragStartClientX, e.clientY - state.dragStartClientY);
+    if (dist > 6) pointerMoved = true;
+    var rect = stage.getBoundingClientRect();
+    var scale = 600 / rect.height;
+    var deltaPx = (e.clientY - state.dragStartClientY) * scale;
+    state.magnetCenterY = clamp(state.dragStartCenter + deltaPx, MAGNET_Y_MIN, MAGNET_Y_MAX);
+  });
+  function endDrag(e){
+    if (!pointerActive) return;
+    pointerActive = false;
+    state.mode = "idle";
+    if (!pointerMoved){ triggerFlip(); }
+  }
+  magnet.addEventListener("pointerup", endDrag);
+  magnet.addEventListener("pointercancel", endDrag);
+
+  // ---- 초기화 ----
+  buildCoil(state.turns);
+  updateMagnetVisual();
+  prevFluxSigned = currentFluxSigned();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
