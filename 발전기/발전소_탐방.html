@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>발전소 탐방 - 발전기의 원리</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #1a2b3c;
+  min-height: 100vh;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 20px 16px 40px; color: #eee;
+}
+h1 { font-size: 26px; font-weight: 700; margin-bottom: 5px; text-shadow: 0 2px 8px rgba(0,0,0,.5); }
+h2 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+.guide { font-size: 18px; font-weight: 600; color: #c8e8ff; margin-bottom: 16px; letter-spacing: 0.2px; text-shadow: 0 1px 6px rgba(0,0,0,.4); }
+.guide strong { color: #ADFF2F; text-shadow: 0 0 10px rgba(173,255,47,0.7); }
+
+.view { display: none; width: 100%; max-width: 1100px; flex-direction: column; align-items: center; }
+.view.active { display: flex; }
+
+/* ---------- 지도 화면 ---------- */
+.map-wrap { position: relative; display: inline-block; border-radius: 14px; overflow: hidden; box-shadow: 0 6px 32px rgba(0,0,0,.6); }
+.map-img { display: block; height: 640px; max-width: 100%; width: auto; }
+
+.hotspot {
+  position: absolute; transform: translate(-50%, -50%);
+  width: 54px; height: 54px; border-radius: 50%;
+  border: none; cursor: pointer; background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0;
+}
+.hotspot .dot {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--c); box-shadow: 0 0 0 0 var(--c);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; color: #fff;
+  animation: pulse 1.8s infinite;
+  border: 2px solid #fff;
+}
+@keyframes pulse {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c) 70%, transparent); }
+  70%  { box-shadow: 0 0 0 16px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.hotspot .tip {
+  position: absolute; bottom: 62px; left: 50%; transform: translateX(-50%);
+  background: rgba(10,20,30,0.92); color: #fff; font-size: 13px; font-weight: 700;
+  padding: 4px 10px; border-radius: 6px; white-space: nowrap;
+  opacity: 0; pointer-events: none; transition: opacity .15s;
+  border: 1px solid var(--c);
+  z-index: 5;
+}
+.hotspot:hover .tip { opacity: 1; }
+.hotspot:hover .dot { transform: scale(1.15); }
+
+.principle-view-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; padding: 20px 14px; margin-bottom: 4px;
+  font-size: 18px; font-weight: 800; color: #1a1400;
+  background: linear-gradient(180deg, #FFE44D, #FFC700);
+  border: none; border-radius: 14px; cursor: pointer;
+  box-shadow: 0 0 0 3px rgba(255,199,0,0.25), 0 6px 18px rgba(0,0,0,.4);
+  transition: transform .15s, box-shadow .15s;
+}
+.principle-view-btn .ic { font-size: 24px; }
+.principle-view-btn:hover { transform: translateY(-3px); box-shadow: 0 0 0 3px rgba(255,199,0,0.4), 0 8px 22px rgba(0,0,0,.45); }
+.principle-view-btn:active { transform: scale(0.97); }
+
+/* ---------- 발전소 상세 화면 ---------- */
+#backBtn {
+  align-self: flex-start; margin-bottom: 12px; padding: 9px 18px; font-size: 15px; font-weight: 700;
+  background: rgba(255,255,255,0.1); color: #eee; border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 8px; cursor: pointer;
+}
+#backBtn:hover { background: rgba(255,255,255,0.18); }
+
+.plant-head { display:flex; align-items:center; gap:10px; margin-bottom: 4px; }
+.plant-badge { width: 14px; height: 14px; border-radius: 50%; background: var(--pc); box-shadow: 0 0 10px var(--pc); }
+#plantDesc { font-size: 15px; color: #b9cddb; margin-bottom: 16px; max-width: 900px; text-align:center; line-height:1.5; }
+
+.plant-layout { display: flex; gap: 20px; align-items: flex-start; width: 100%; flex-wrap: wrap; justify-content: center; }
+.plant-main { flex: 1 1 520px; max-width: 620px; border-radius: 14px; overflow: hidden; box-shadow: 0 6px 32px rgba(0,0,0,.6); cursor: zoom-in; position: relative; }
+.plant-main img { display: block; width: 100%; height: auto; transition: transform .3s; }
+.plant-main:hover img { transform: scale(1.04); }
+.plant-main::after {
+  content: '🔍'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 52px; opacity: 0; background: rgba(0,0,0,0); transition: opacity .2s, background .2s; pointer-events: none;
+}
+.plant-main:hover::after { opacity: 1; background: rgba(0,0,0,0.32); }
+.plant-main .zoom-hint { position:absolute; bottom:8px; right:10px; background: rgba(0,0,0,.55); color:#fff; font-size:12px; padding:3px 9px; border-radius:6px; z-index:1; }
+
+.plant-thumbs { flex: 1 1 320px; max-width: 360px; display: flex; flex-direction: column; gap: 12px; }
+.thumb-card {
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px;
+  overflow: hidden; cursor: zoom-in; transition: border-color .15s, transform .1s;
+}
+.thumb-card:hover { border-color: var(--pc); transform: translateY(-2px); }
+.thumb-img-wrap { position: relative; overflow: hidden; background:#0e1a26; }
+.thumb-img-wrap img { display: block; width: 100%; max-height: 180px; object-fit: contain; transition: transform .3s; }
+.thumb-card:hover .thumb-img-wrap img { transform: scale(1.08); }
+.thumb-img-wrap::after {
+  content: '🔍'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 30px; opacity: 0; background: rgba(0,0,0,0); transition: opacity .2s, background .2s; pointer-events: none;
+}
+.thumb-card:hover .thumb-img-wrap::after { opacity: 1; background: rgba(0,0,0,0.32); }
+.thumb-card .cap { padding: 8px 10px; font-size: 13px; font-weight: 600; color: #cfe3ee; }
+
+/* ---------- 오버레이 공통 ---------- */
+.overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.82);
+  align-items: center; justify-content: center; z-index: 50; padding: 20px;
+}
+.overlay.active { display: flex; }
+
+.lightbox-inner { position: relative; max-width: 95vw; max-height: 92vh; opacity: 0; transform: scale(0.82); }
+.lightbox-inner img { max-width: 95vw; max-height: 92vh; border-radius: 10px; box-shadow: 0 10px 50px rgba(0,0,0,.7); display: block; }
+.overlay.active .lightbox-inner { animation: popIn .22s ease-out forwards; }
+@keyframes popIn { from { opacity: 0; transform: scale(0.82); } to { opacity: 1; transform: scale(1); } }
+.ov-close {
+  position: absolute; top: -14px; right: -14px; width: 34px; height: 34px; border-radius: 50%;
+  background: #ADFF2F; color: #1a2b3c; border: none; font-size: 18px; font-weight: 900; cursor: pointer;
+}
+
+/* ---------- 원리 시뮬레이션 모달 ---------- */
+.principle-inner {
+  position: relative; background: #142230; border-radius: 16px; padding: 22px 26px 26px;
+  max-width: 1000px; width: 100%; max-height: 92vh; overflow-y: auto;
+  box-shadow: 0 10px 60px rgba(0,0,0,.7); border: 1px solid rgba(255,255,255,0.1);
+}
+.principle-inner .ov-close { top: 14px; right: 14px; }
+.principle-layout { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; justify-content: center; margin-top: 10px; }
+#genCanvas { background: #0c1720; border-radius: 12px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08); max-width: 100%; }
+
+.p-sidebar { width: 270px; min-width: 250px; display: flex; flex-direction: column; gap: 14px; }
+.p-sidebar label { font-size: 14px; font-weight: 700; color: #8ab8cc; letter-spacing: 0.4px; }
+#speed { width: 100%; accent-color: #ADFF2F; cursor: pointer; }
+#speedVal { font-size: 15px; font-weight: 700; color: #ADFF2F; text-align:center; }
+
+.tide-strength-row { display: flex; gap: 8px; }
+.tide-strength-btn {
+  flex: 1; padding: 9px 4px; font-size: 13px; font-weight: 700; text-align: center; line-height: 1.5; cursor: pointer;
+  background: rgba(255,255,255,0.06); border: 2px solid transparent; border-radius: 8px; color: #b9cddb;
+}
+.tide-strength-btn .sub { font-size: 10.5px; font-weight: 600; opacity: 0.8; }
+.tide-strength-btn.on { border-color: #00ACC1; color: #fff; background: rgba(0,172,193,0.22); }
+
+.tide-phase-btn {
+  flex: 1; padding: 11px 4px; font-size: 14px; font-weight: 700; text-align: center; cursor: pointer;
+  background: rgba(255,255,255,0.06); border: 2px solid transparent; border-radius: 8px; color: #b9cddb;
+}
+.tide-phase-btn.on { border-color: #4fc3f7; color: #fff; background: rgba(79,195,247,0.22); }
+.tide-phase-btn[data-phase="ebb"].on { border-color: #ADFF2F; color: #fff; background: rgba(173,255,47,0.18); }
+
+.p-explain { font-size: 13.5px; line-height: 1.6; color: #cfe3ee; background: rgba(255,255,255,0.05); border-radius: 10px; padding: 12px 14px; }
+.p-explain b { color: #ADFF2F; }
+</style>
+</head>
+<body>
+
+<h1>⚡ 발전소 탐방</h1>
+<p class="guide">지도의 <strong>발전소 아이콘</strong>을 클릭해 내부를 둘러보세요!</p>
+
+<!-- ================= 지도 화면 ================= -->
+<div class="view active" id="mapView">
+  <div class="map-wrap">
+    <img class="map-img" src="발전소2.jpg" alt="우리나라 주요 발전소 지도">
+    <button class="hotspot" style="left:60.0%; top:14.5%; --c:#2196F3;" data-plant="hydro">
+      <span class="dot">💧</span><span class="tip">수력발전소</span>
+    </button>
+    <button class="hotspot" style="left:34.9%; top:30.9%; --c:#00ACC1;" data-plant="tidal">
+      <span class="dot">🌊</span><span class="tip">조력발전소</span>
+    </button>
+    <button class="hotspot" style="left:29.1%; top:72.6%; --c:#43A047;" data-plant="wind">
+      <span class="dot">🌬️</span><span class="tip">풍력발전소</span>
+    </button>
+    <button class="hotspot" style="left:28.7%; top:78.5%; --c:#7C4DFF;" data-plant="nuclear">
+      <span class="dot">⚛️</span><span class="tip">원자력발전소</span>
+    </button>
+    <button class="hotspot" style="left:66.7%; top:71.0%; --c:#E53935;" data-plant="thermal">
+      <span class="dot">🔥</span><span class="tip">화력발전소</span>
+    </button>
+  </div>
+</div>
+
+<!-- ================= 발전소 상세 화면 ================= -->
+<div class="view" id="plantView">
+  <button id="backBtn">← 지도로 돌아가기</button>
+  <div class="plant-head">
+    <span class="plant-badge" id="plantBadge"></span>
+    <h2 id="plantTitle"></h2>
+  </div>
+  <p id="plantDesc"></p>
+  <div class="plant-layout">
+    <div class="plant-main" id="plantMainWrap">
+      <img id="plantPano" src="" alt="발전소 전경">
+      <span class="zoom-hint">🔍 클릭하면 크게 보기</span>
+    </div>
+    <div class="plant-thumbs" id="plantThumbs"></div>
+  </div>
+</div>
+
+<!-- ================= 이미지 확대 라이트박스 ================= -->
+<div class="overlay" id="lightbox">
+  <div class="lightbox-inner">
+    <button class="ov-close" id="lightboxClose">✕</button>
+    <img id="lightboxImg" src="" alt="확대 이미지">
+  </div>
+</div>
+
+<!-- ================= 발전기 원리 시뮬레이션 ================= -->
+<div class="overlay" id="principleModal">
+  <div class="principle-inner">
+    <button class="ov-close" id="principleClose">✕</button>
+    <h2 id="principleTitle">🔬 발전기의 원리</h2>
+    <p class="guide" id="principleTagline" style="margin-bottom:0;"></p>
+    <div class="principle-layout">
+      <canvas id="genCanvas" width="560" height="380"></canvas>
+      <div class="p-sidebar">
+        <div id="sliderRow">
+          <label for="speed" id="speedLabel">취수량 조절</label>
+          <input type="range" id="speed" min="0" max="100" value="0">
+          <div id="speedVal">0 (정지)</div>
+        </div>
+        <div id="tidalRow" style="display:none;">
+          <label>밀물 · 썰물 선택</label>
+          <div class="tide-strength-row" style="margin-top:6px;">
+            <button class="tide-phase-btn on" data-phase="flood">🌊 밀물일 때</button>
+            <button class="tide-phase-btn" data-phase="ebb">🌊 썰물일 때</button>
+          </div>
+          <label style="margin-top:12px; display:block;">낙차 크기 선택</label>
+          <div class="tide-strength-row" style="margin-top:6px;">
+            <button class="tide-strength-btn on" data-strength="high">⬆️ 낙차 클 때<br><span class="sub">(빠른 물살)</span></button>
+            <button class="tide-strength-btn" data-strength="low">⬇️ 낙차 작을 때<br><span class="sub">(느린 물살)</span></button>
+          </div>
+        </div>
+        <div class="p-explain" id="explainBox"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===================== 데이터 ===================== */
+const PLANTS = {
+  hydro: {
+    title: '💧 수력발전소', color: '#2196F3',
+    pano: '수력발전소03_전경.jpg',
+    desc: '댐에 가둔 물의 높이 차이(위치 에너지)를 이용해 터빈을 돌리고, 그 회전력으로 발전기를 돌려 전기를 만드는 발전소입니다.',
+    thumbs: [
+      { src: '수력발전소.jpg', label: '발전 구조 한눈에 보기' },
+      { src: '수력발전소01.jpg', label: '댐과 발전기 단면도' },
+      { src: '수력발전소02.jpg', label: '실제 수차 터빈의 모습' }
+    ]
+  },
+  thermal: {
+    title: '🔥 화력발전소', color: '#E53935',
+    pano: '화력발전소03_전경.jpg',
+    desc: '석탄·석유·천연가스를 태운 열로 물을 끓여 고압 증기를 만들고, 그 증기의 힘으로 터빈을 돌려 전기를 만드는 발전소입니다.',
+    thumbs: [
+      { src: '화력발전소.jpg', label: '보일러 - 터빈 - 발전기 구조' },
+      { src: '화력발전소01.jpg', label: '화력·원자력 발전 비교' },
+      { src: '화력발전소02.jpg', label: '터빈과 발전기 내부 절개도' }
+    ]
+  },
+  wind: {
+    title: '🌬️ 풍력발전소', color: '#43A047',
+    pano: '풍력발전소03_전경.jpg',
+    desc: '바람의 힘으로 커다란 날개(블레이드)를 돌리고, 그 회전력을 기어로 증폭해 발전기를 돌려 전기를 만드는 발전소입니다.',
+    thumbs: [
+      { src: '풍력발전소.jpg', label: '날개 - 발전기 연결 구조' },
+      { src: '풍력발전소02.jpg', label: '나셀(발전기 내부) 구조' }
+    ]
+  },
+  nuclear: {
+    title: '⚛️ 원자력발전소', color: '#7C4DFF',
+    pano: '원자력발전소03_전경.jpg',
+    desc: '원자로 속 핵분열 반응에서 나오는 열로 물을 끓여 고압 증기를 만들고, 그 증기의 힘으로 터빈을 돌려 전기를 만드는 발전소입니다.',
+    thumbs: [
+      { src: '원자력발전소01.jpg', label: '원자로 - 터빈 - 발전기 구조' },
+      { src: '원자력발전소02.jpg', label: '실제 터빈·발전기 내부 모습' }
+    ]
+  },
+  tidal: {
+    title: '🌊 조력발전소', color: '#00ACC1',
+    pano: '조력발전소03_전경.jpg',
+    desc: '밀물과 썰물 때 생기는 바닷물의 높이 차이를 이용해 수문으로 물을 흘려보내며 터빈을 돌려 전기를 만드는 발전소입니다.',
+    thumbs: [
+      { src: '조력발전소01.jpg', label: '밀물·썰물을 이용한 발전 원리' },
+      { src: '조력발전소02.jpg', label: '실제 조력발전소 발전기 모습' }
+    ]
+  }
+};
+
+const PRINCIPLE_META = {
+  hydro:   { label: '수력발전의 원리', color: '#2196F3', sliderLabel: '취수량 조절', tagline: '물이 흐르면 터빈이 돌고, 터빈과 연결된 발전기가 전기를 만들어요!' },
+  thermal: { label: '화력발전의 원리', color: '#E53935', sliderLabel: '증기의 압력',   tagline: '뜨거운 증기가 터빈을 밀면, 터빈과 연결된 발전기가 전기를 만들어요!' },
+  wind:    { label: '풍력발전의 원리', color: '#43A047', sliderLabel: '바람의 세기',   tagline: '바람이 날개를 돌리면, 기어를 거쳐 발전기가 전기를 만들어요!' },
+  nuclear: { label: '원자력발전의 원리', color: '#7C4DFF', sliderLabel: '원자로 출력', tagline: '원자로의 열로 만든 증기가 터빈을 돌리면, 발전기가 전기를 만들어요!' },
+  tidal:   { label: '조력발전의 원리', color: '#00ACC1', tagline: '밀물과 썰물의 물살이 터빈을 돌리면, 발전기가 전기를 만들어요!' }
+};
+
+/* ===================== 화면 전환 ===================== */
+const mapView = document.getElementById('mapView');
+const plantView = document.getElementById('plantView');
+
+function showView(view) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  view.classList.add('active');
+}
+
+document.querySelectorAll('.hotspot').forEach(btn => {
+  btn.addEventListener('click', () => openPlant(btn.dataset.plant));
+});
+
+function openPlant(key) {
+  const p = PLANTS[key];
+  document.getElementById('plantBadge').style.setProperty('--pc', p.color);
+  document.getElementById('plantThumbs').style.setProperty('--pc', p.color);
+  document.getElementById('plantTitle').textContent = p.title;
+  document.getElementById('plantDesc').textContent = p.desc;
+  document.getElementById('plantPano').src = p.pano;
+
+  const thumbBox = document.getElementById('plantThumbs');
+  thumbBox.innerHTML = '';
+
+  const principleBtn = document.createElement('button');
+  principleBtn.className = 'principle-view-btn';
+  principleBtn.innerHTML = `<span class="ic">⚡</span>${p.title.replace(/^\S+\s/, '')} 원리 보기`;
+  principleBtn.addEventListener('click', () => openPrinciple(key));
+  thumbBox.appendChild(principleBtn);
+
+  p.thumbs.forEach(t => {
+    const card = document.createElement('div');
+    card.className = 'thumb-card';
+    card.style.setProperty('--pc', p.color);
+    card.innerHTML = `<div class="thumb-img-wrap"><img src="${t.src}" alt="${t.label}"></div><div class="cap">${t.label}</div>`;
+    card.addEventListener('click', () => openLightbox(t.src));
+    thumbBox.appendChild(card);
+  });
+
+  showView(plantView);
+}
+
+document.getElementById('backBtn').addEventListener('click', () => showView(mapView));
+
+/* ===================== 라이트박스 ===================== */
+const lightbox = document.getElementById('lightbox');
+const lightboxImg = document.getElementById('lightboxImg');
+function openLightbox(src) {
+  lightboxImg.src = src;
+  lightbox.classList.add('active');
+}
+document.getElementById('lightboxClose').addEventListener('click', () => lightbox.classList.remove('active'));
+lightbox.addEventListener('click', e => { if (e.target === lightbox) lightbox.classList.remove('active'); });
+document.getElementById('plantMainWrap').addEventListener('click', () => openLightbox(document.getElementById('plantPano').src));
+
+/* ===================== 발전기 원리 시뮬레이션 ===================== */
+const principleModal = document.getElementById('principleModal');
+const principleClose = document.getElementById('principleClose');
+const principleTitle = document.getElementById('principleTitle');
+const principleTagline = document.getElementById('principleTagline');
+let rafId = null;
+
+function closePrinciple() {
+  principleModal.classList.remove('active');
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = null;
+}
+principleClose.addEventListener('click', closePrinciple);
+principleModal.addEventListener('click', e => { if (e.target === principleModal) closePrinciple(); });
+
+const speedInput = document.getElementById('speed');
+const speedVal = document.getElementById('speedVal');
+const speedLabel = document.getElementById('speedLabel');
+const explainBox = document.getElementById('explainBox');
+const sliderRow = document.getElementById('sliderRow');
+const tidalRow = document.getElementById('tidalRow');
+
+const TIDE_STRENGTH = { high: 100, low: 38 };
+
+let curPrincipleKey = 'hydro';
+const tidalState = { phase: 'flood', flowAnim: 0, strengthKey: 'high', strength: TIDE_STRENGTH.high };
+
+document.querySelectorAll('.tide-strength-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tide-strength-btn').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    tidalState.strengthKey = btn.dataset.strength;
+    tidalState.strength = TIDE_STRENGTH[tidalState.strengthKey];
+    updateExplain();
+  });
+});
+
+document.querySelectorAll('.tide-phase-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tide-phase-btn').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    tidalState.phase = btn.dataset.phase;
+    updateExplain();
+  });
+});
+
+function openPrinciple(key) {
+  curPrincipleKey = key;
+  const meta = PRINCIPLE_META[key];
+
+  principleTitle.textContent = '🔬 ' + meta.label;
+  principleTagline.innerHTML = meta.tagline;
+
+  speedInput.value = 0;
+  speedVal.textContent = '0 (정지)';
+
+  if (key === 'tidal') {
+    sliderRow.style.display = 'none';
+    tidalRow.style.display = 'block';
+    tidalState.phase = 'flood';
+    tidalState.strengthKey = 'high';
+    tidalState.strength = TIDE_STRENGTH.high;
+    document.querySelectorAll('.tide-strength-btn').forEach(b => b.classList.toggle('on', b.dataset.strength === 'high'));
+    document.querySelectorAll('.tide-phase-btn').forEach(b => b.classList.toggle('on', b.dataset.phase === 'flood'));
+  } else {
+    sliderRow.style.display = 'block';
+    tidalRow.style.display = 'none';
+    speedLabel.textContent = meta.sliderLabel;
+  }
+
+  updateExplain();
+  principleModal.classList.add('active');
+  lastT = null;
+  if (!rafId) rafId = requestAnimationFrame(principleLoop);
+}
+
+function updateExplain() {
+  const s = Number(speedInput.value);
+  let html = '';
+  switch (curPrincipleKey) {
+    case 'hydro':
+      html = s === 0
+        ? '취수구를 열어 물을 끌어들여 보세요.<br><br>물이 흐르지 않으면 터빈이 돌지 않아 전기가 만들어지지 않습니다.'
+        : `취수구가 열려 물이 <b>${s < 40 ? '천천히' : s < 75 ? '적당히' : '힘차게'}</b> 흘러들고 있어요.<br><br>흐르는 물이 <b>발전터빈</b>을 돌리고, 터빈과 연결된 <b>발전기</b>가 함께 회전하며 전기를 만듭니다. 만들어진 전기는 <b>변압기</b>를 거쳐 <b>송전철탑</b>으로 보내집니다.`;
+      break;
+    case 'thermal':
+      html = s === 0
+        ? '보일러에 불을 지펴 증기를 만들어 보세요.'
+        : `보일러에서 연료를 태운 열로 물을 끓여 <b>${s < 40 ? '약한' : s < 75 ? '적당한' : '아주 강한'}</b> 증기를 만들고 있어요.<br><br>이 증기가 <b>터빈</b>의 날개를 세게 밀어 회전시키고, 터빈과 연결된 <b>발전기</b>가 함께 돌면서 전류(CURRENT)가 만들어집니다.`;
+      break;
+    case 'nuclear':
+      html = s === 0
+        ? '원자로를 가동해 증기를 만들어 보세요.'
+        : `원자로 속 <b>핵분열 반응</b>에서 나오는 열로 물을 끓여 증기를 만들고 있어요.<br><br>화력발전과 마찬가지로, 이 증기가 <b>터빈</b>과 <b>발전기</b>를 돌려 전기를 만듭니다. 연료를 태우지 않고도 아주 강력한 열을 얻을 수 있는 것이 특징입니다.`;
+      break;
+    case 'wind':
+      html = s === 0
+        ? '바람이 불어와 날개를 밀어 보세요.'
+        : `바람이 불어 커다란 <b>날개</b>가 회전하고 있어요.<br><br>날개의 회전은 느리지만 힘이 세서, <b>기어</b>를 거치며 회전 속도를 높인 뒤 <b>발전기</b>를 빠르게 돌려 전기를 만듭니다.`;
+      break;
+    case 'tidal': {
+      const headTxt = tidalState.strengthKey === 'high'
+        ? '낙차가 커서 물살이 빠릅니다'
+        : '낙차가 작아서 물살이 느립니다';
+      if (tidalState.phase === 'flood') {
+        html = `🌊 <b>밀물</b>: 수문이 열려 바닷물이 안쪽으로 들어옵니다. (${headTxt})<br><br>물이 차오르는 동안에는 터빈이 가동되지 않아 전기가 만들어지지 않습니다.`;
+      } else {
+        html = `🌊 <b>썰물</b>: 수문이 닫히고, 가득 찬 물이 터빈 쪽 통로로 빠져나갑니다. (${headTxt})<br><br>이때 물살이 <b>터빈</b>을 <b>${tidalState.strengthKey === 'high' ? '빠르게' : '천천히'}</b> 돌리고, 발전기가 함께 회전하며 전기가 만들어집니다.`;
+      }
+      break;
+    }
+  }
+  explainBox.innerHTML = html;
+}
+speedInput.addEventListener('input', updateExplain);
+
+/* ---- 캔버스 애니메이션 ---- */
+const cv = document.getElementById('genCanvas');
+const gx = cv.getContext('2d');
+const CW = cv.width, CH = cv.height;
+let angle = 0;
+let flowPhase = 0;
+let windPhase = 0;
+let lastT = null;
+
+function principleLoop(t) {
+  if (lastT === null) lastT = t;
+  const dt = Math.min((t - lastT) / 1000, 0.05);
+  lastT = t;
+
+  let speed = Number(speedInput.value);
+  if (curPrincipleKey !== 'tidal') {
+    speedVal.textContent = speed === 0 ? '0 (정지)' : `${speed} (가동 중)`;
+  } else {
+    speed = tidalState.phase === 'ebb' ? tidalState.strength : 0;
+  }
+
+  angle += dt * speed * 0.09;
+  flowPhase += dt * (0.15 + speed / 220);
+  windPhase += dt * 0.6;
+
+  if (curPrincipleKey === 'tidal') {
+    tidalState.flowAnim += dt * (0.2 + tidalState.strength / 160);
+  }
+
+  drawCurrent(speed);
+  rafId = requestAnimationFrame(principleLoop);
+}
+
+function drawCurrent(speed) {
+  switch (curPrincipleKey) {
+    case 'hydro': drawHydro(speed); break;
+    case 'thermal': drawThermal(speed); break;
+    case 'nuclear': drawNuclear(speed); break;
+    case 'wind': drawWind(speed); break;
+    case 'tidal': drawTidal(); break;
+  }
+}
+
+/* ---- 공용 헬퍼 ---- */
+function pathPoint(path, t) {
+  const segLens = [];
+  let total = 0;
+  for (let i = 0; i < path.length - 1; i++) {
+    const dx = path[i + 1].x - path[i].x, dy = path[i + 1].y - path[i].y;
+    const l = Math.hypot(dx, dy);
+    segLens.push(l);
+    total += l;
+  }
+  let target = t * total;
+  for (let i = 0; i < segLens.length; i++) {
+    if (target <= segLens[i] || i === segLens.length - 1) {
+      const localT = segLens[i] ? Math.min(target / segLens[i], 1) : 0;
+      const p0 = path[i], p1 = path[i + 1];
+      return { x: p0.x + (p1.x - p0.x) * localT, y: p0.y + (p1.y - p0.y) * localT };
+    }
+    target -= segLens[i];
+  }
+  return path[path.length - 1];
+}
+function drawFlowParticles(path, phase, count, color, r) {
+  gx.fillStyle = color;
+  for (let i = 0; i < count; i++) {
+    const t = ((phase + i / count) % 1 + 1) % 1;
+    const p = pathPoint(path, t);
+    gx.beginPath(); gx.arc(p.x, p.y, r, 0, Math.PI * 2); gx.fill();
+  }
+}
+function drawGear(x, y, r, teeth, rot) {
+  gx.save();
+  gx.translate(x, y);
+  gx.rotate(rot);
+  gx.fillStyle = '#8a99a6';
+  gx.beginPath(); gx.arc(0, 0, r, 0, Math.PI * 2); gx.fill();
+  for (let i = 0; i < teeth; i++) {
+    gx.save();
+    gx.rotate((i / teeth) * Math.PI * 2);
+    gx.fillRect(-3, -r - 6, 6, 8);
+    gx.restore();
+  }
+  gx.fillStyle = '#3a4652';
+  gx.beginPath(); gx.arc(0, 0, r * 0.35, 0, Math.PI * 2); gx.fill();
+  gx.restore();
+}
+function brightFromSpeed(speed) { return Math.min(1, speed / 100); }
+function drawOutput(x, y, bright) {
+  if (bright > 0.04) {
+    const grad = gx.createRadialGradient(x, y, 3, x, y, 62);
+    grad.addColorStop(0, `rgba(255,241,150,${bright})`);
+    grad.addColorStop(1, 'rgba(255,241,150,0)');
+    gx.fillStyle = grad;
+    gx.beginPath(); gx.arc(x, y, 62, 0, Math.PI * 2); gx.fill();
+  }
+  gx.beginPath(); gx.arc(x, y, 27, 0, Math.PI * 2);
+  gx.fillStyle = bright > 0.04 ? `rgba(255,236,120,${0.5 + bright * 0.5})` : 'rgba(80,80,70,0.6)';
+  gx.fill();
+  gx.strokeStyle = '#8a8a70'; gx.lineWidth = 2; gx.stroke();
+  gx.font = '26px Segoe UI'; gx.textAlign = 'center'; gx.textBaseline = 'middle';
+  gx.fillText('💡', x, y + 1);
+
+  const barW = 84, barH = 10, barX = x - barW / 2, barY = y + 42;
+  gx.strokeStyle = 'rgba(255,255,255,.3)'; gx.lineWidth = 1.5; gx.strokeRect(barX, barY, barW, barH);
+  gx.fillStyle = '#ADFF2F'; gx.fillRect(barX + 1, barY + 1, Math.max(0, (barW - 2) * bright), barH - 2);
+  gx.fillStyle = '#8ab8cc'; gx.font = '11px Segoe UI'; gx.textBaseline = 'alphabetic'; gx.textAlign = 'center';
+  gx.fillText('전력 생산량', x, barY + 24);
+}
+
+/* ---- 수력발전 (수력발전소01 단면도 기반) ---- */
+function drawHydro(speed) {
+  gx.clearRect(0, 0, CW, CH);
+  gx.textAlign = 'center'; gx.textBaseline = 'alphabetic';
+
+  gx.fillStyle = '#2b6cb0';
+  gx.fillRect(20, 60, 140, 70);
+  gx.fillStyle = '#cfe3ee'; gx.font = '13px Segoe UI'; gx.textAlign = 'left';
+  gx.fillText('상부 댐', 24, 54);
+
+  gx.fillStyle = '#8d99a6';
+  gx.beginPath();
+  gx.moveTo(160, 40); gx.lineTo(212, 62); gx.lineTo(232, 320); gx.lineTo(160, 320);
+  gx.closePath(); gx.fill();
+
+  const pipePath = [{ x: 150, y: 120 }, { x: 230, y: 175 }, { x: 285, y: 250 }, { x: 300, y: 280 }];
+  gx.strokeStyle = '#5a6b78'; gx.lineWidth = 16; gx.lineCap = 'round';
+  gx.beginPath(); pipePath.forEach((p, i) => i ? gx.lineTo(p.x, p.y) : gx.moveTo(p.x, p.y)); gx.stroke();
+  gx.fillStyle = '#cfe3ee'; gx.font = '13px Segoe UI'; gx.fillText('배수관로', 245, 210);
+
+  gx.fillStyle = '#2b6cb0'; gx.fillRect(320, 320, 210, 40);
+  gx.fillStyle = '#cfe3ee'; gx.fillText('하부 배출 수로', 425, 315);
+
+  const tx = 305, ty = 295;
+  gx.fillStyle = '#3a4652'; gx.beginPath(); gx.arc(tx, ty, 32, 0, Math.PI * 2); gx.fill();
+  gx.save(); gx.translate(tx, ty); gx.rotate(angle);
+  gx.strokeStyle = '#e08a3c'; gx.lineWidth = 5; gx.lineCap = 'round';
+  for (let i = 0; i < 6; i++) { gx.save(); gx.rotate(i * Math.PI / 3); gx.beginPath(); gx.moveTo(0, 0); gx.lineTo(24, 0); gx.stroke(); gx.restore(); }
+  gx.restore();
+  gx.fillStyle = '#cfe3ee'; gx.textAlign = 'center'; gx.fillText('발전터빈', tx, ty + 54);
+
+  const gx0 = 305, gy0 = 215;
+  gx.fillStyle = '#4a3f78'; gx.fillRect(gx0 - 30, gy0 - 22, 60, 44);
+  gx.save(); gx.translate(gx0, gy0); gx.rotate(-angle * 1.2);
+  gx.strokeStyle = '#ffd54f'; gx.lineWidth = 4;
+  gx.beginPath(); gx.moveTo(-15, 0); gx.lineTo(15, 0); gx.moveTo(0, -15); gx.lineTo(0, 15); gx.stroke();
+  gx.restore();
+  gx.fillStyle = '#cfe3ee'; gx.fillText('발전기', gx0, gy0 - 32);
+
+  gx.strokeStyle = '#9aa7b0'; gx.lineWidth = 6;
+  gx.beginPath(); gx.moveTo(tx, ty - 32); gx.lineTo(gx0, gy0 + 22); gx.stroke();
+
+  const trX = 405, trY = 215;
+  gx.fillStyle = '#5a6b78'; gx.fillRect(trX - 24, trY - 28, 48, 56);
+  gx.fillStyle = '#cfe3ee'; gx.fillText('변압기', trX, trY - 38);
+  gx.strokeStyle = '#e08a3c'; gx.lineWidth = 3;
+  gx.beginPath(); gx.moveTo(gx0 + 30, gy0); gx.lineTo(trX - 24, trY); gx.stroke();
+
+  const twX = 490, twY = 100;
+  gx.strokeStyle = '#8d99a6'; gx.lineWidth = 3;
+  gx.beginPath(); gx.moveTo(twX - 22, twY + 75); gx.lineTo(twX, twY); gx.lineTo(twX + 22, twY + 75); gx.stroke();
+  gx.beginPath(); gx.moveTo(twX - 13, twY + 28); gx.lineTo(twX + 13, twY + 28); gx.stroke();
+  gx.fillStyle = '#cfe3ee'; gx.fillText('송전철탑', twX, twY - 10);
+  gx.beginPath(); gx.moveTo(trX + 24, trY - 18); gx.lineTo(twX, twY + 8); gx.stroke();
+
+  const flowPath = pipePath.concat([{ x: 320, y: 335 }, { x: 500, y: 335 }]);
+  drawFlowParticles(flowPath, flowPhase, 9, '#8ecdf0', 4);
+
+  drawOutput(CW - 65, 65, brightFromSpeed(speed));
+}
+
+/* ---- 화력 / 원자력 발전 (화력발전소02 절개도 기반, 열원만 다름) ---- */
+function drawThermalLike(speed, opts) {
+  gx.clearRect(0, 0, CW, CH);
+  gx.textAlign = 'center'; gx.textBaseline = 'alphabetic';
+
+  const pulse = Math.sin(flowPhase * 7) * (speed * 0.12);
+  const coreR = 46 + pulse;
+
+  if (speed > 2) {
+    const glowR = 50 + speed * 0.55;
+    const glowA = Math.min(0.6, 0.1 + speed / 160);
+    const glowGrad = gx.createRadialGradient(65, 190, 10, 65, 190, glowR);
+    glowGrad.addColorStop(0, `rgba(${opts.glowRGB},${glowA})`);
+    glowGrad.addColorStop(1, `rgba(${opts.glowRGB},0)`);
+    gx.fillStyle = glowGrad;
+    gx.beginPath(); gx.arc(65, 190, glowR, 0, Math.PI * 2); gx.fill();
+  }
+
+  if (opts.reactive) {
+    for (let i = 0; i < 3; i++) {
+      const p = (flowPhase * 0.6 + i / 3) % 1;
+      const r = 46 + p * (18 + speed * 0.34);
+      const alpha = (1 - p) * (speed / 140);
+      if (alpha > 0.02) {
+        gx.strokeStyle = `rgba(180,120,240,${alpha})`;
+        gx.lineWidth = 3;
+        gx.beginPath(); gx.arc(65, 190, r, 0, Math.PI * 2); gx.stroke();
+      }
+    }
+    for (let i = 0; i < 3; i++) {
+      const a = angle * 2.4 + i * (Math.PI * 2 / 3);
+      const orbitR = 32 + speed * 0.08;
+      const ex = 65 + Math.cos(a) * orbitR, ey = 190 + Math.sin(a) * (orbitR * 0.56);
+      gx.fillStyle = '#e6cbff';
+      gx.beginPath(); gx.arc(ex, ey, 3 + speed * 0.02, 0, Math.PI * 2); gx.fill();
+    }
+  }
+
+  gx.fillStyle = opts.sourceColor;
+  gx.beginPath(); gx.arc(65, 190, coreR, 0, Math.PI * 2); gx.fill();
+  gx.save();
+  gx.translate(65, 190);
+  if (opts.reactive) gx.rotate(angle * 1.6);
+  gx.font = `${38 + Math.max(0, pulse) * 0.6}px Segoe UI`;
+  gx.textAlign = 'center'; gx.textBaseline = 'middle';
+  gx.fillText(opts.sourceIcon, 0, 0);
+  gx.restore();
+  gx.fillStyle = '#cfe3ee'; gx.font = '13px Segoe UI'; gx.textAlign = 'center'; gx.textBaseline = 'alphabetic';
+  gx.fillText(opts.sourceLabel, 65, 252);
+
+  const steamPath = [{ x: 105, y: 150 }, { x: 175, y: 108 }, { x: 245, y: 130 }, { x: 300, y: 150 }];
+  gx.fillStyle = '#cfe3ee'; gx.textAlign = 'left'; gx.fillText('증기', 150, 92);
+  const steamCount = 5 + Math.round(speed / 6);
+  const steamR = 2.5 + speed / 26;
+  drawFlowParticles(steamPath, flowPhase, steamCount, 'rgba(255,255,255,.85)', steamR);
+
+  const shaftY = 215;
+  gx.strokeStyle = '#9aa7b0'; gx.lineWidth = 6;
+  gx.beginPath(); gx.moveTo(300, shaftY); gx.lineTo(455, shaftY); gx.stroke();
+
+  [320, 355, 390].forEach((dx, i) => {
+    const r = 34 - i * 4;
+    gx.save(); gx.translate(dx, shaftY); gx.rotate(angle * (1 + i * 0.05));
+    gx.strokeStyle = '#7fa8c9'; gx.lineWidth = 3;
+    for (let k = 0; k < 10; k++) { gx.save(); gx.rotate(k * Math.PI / 5); gx.beginPath(); gx.moveTo(0, 0); gx.lineTo(r, 0); gx.stroke(); gx.restore(); }
+    gx.restore();
+  });
+  gx.fillStyle = '#cfe3ee'; gx.textAlign = 'center'; gx.fillText('터빈', 355, shaftY + 54);
+
+  const genX = 465, genY = shaftY;
+  gx.save(); gx.translate(genX, genY); gx.rotate(angle * 1.3);
+  gx.beginPath(); gx.arc(0, 0, 26, -Math.PI / 2, Math.PI / 2); gx.fillStyle = '#d43a2f'; gx.fill();
+  gx.beginPath(); gx.arc(0, 0, 26, Math.PI / 2, Math.PI * 1.5); gx.fillStyle = '#2b64c9'; gx.fill();
+  gx.restore();
+  gx.fillText('발전기', genX, genY - 46);
+
+  gx.strokeStyle = '#ADFF2F'; gx.lineWidth = 3;
+  gx.beginPath(); gx.moveTo(genX + 26, genY); gx.lineTo(CW - 30, genY); gx.stroke();
+  gx.fillStyle = '#ADFF2F'; gx.font = '12px Segoe UI'; gx.textAlign = 'left';
+  gx.fillText('CURRENT →', genX + 26, genY - 8);
+
+  drawOutput(CW - 65, 65, brightFromSpeed(speed));
+}
+function drawThermal(speed) { drawThermalLike(speed, { sourceLabel: '보일러 (연료 연소)', sourceIcon: '🔥', sourceColor: '#c0392b', glowRGB: '255,120,60', reactive: false }); }
+function drawNuclear(speed) { drawThermalLike(speed, { sourceLabel: '원자로 (핵분열 반응)', sourceIcon: '⚛️', sourceColor: '#6c3fa8', glowRGB: '180,120,240', reactive: true }); }
+
+/* ---- 풍력발전 (풍력발전소 나셀 구조 기반) ---- */
+function drawWind(speed) {
+  gx.clearRect(0, 0, CW, CH);
+  gx.textAlign = 'center'; gx.textBaseline = 'alphabetic';
+
+  gx.strokeStyle = `rgba(150,220,255,${0.45 + speed / 170})`;
+  gx.lineWidth = 1.5 + speed * 0.09;
+  gx.lineCap = 'round';
+  for (let i = 0; i < 4; i++) {
+    const y = 60 + i * 34;
+    const xOff = ((windPhase * (60 + speed) + i * 36) % 130) - 40;
+    gx.beginPath();
+    gx.moveTo(20 + xOff, y); gx.lineTo(58 + xOff, y);
+    gx.lineTo(50 + xOff, y - 6); gx.moveTo(58 + xOff, y); gx.lineTo(50 + xOff, y + 6);
+    gx.stroke();
+  }
+
+  const hubX = 150, hubY = 190;
+  gx.save(); gx.translate(hubX, hubY); gx.rotate(angle);
+  gx.fillStyle = '#e8eef2';
+  for (let i = 0; i < 3; i++) {
+    gx.save(); gx.rotate(i * (Math.PI * 2 / 3));
+    gx.beginPath(); gx.moveTo(0, -8); gx.quadraticCurveTo(70, -18, 100, 0); gx.quadraticCurveTo(70, 12, 0, 8); gx.closePath(); gx.fill();
+    gx.restore();
+  }
+  gx.restore();
+  gx.fillStyle = '#3a4652'; gx.beginPath(); gx.arc(hubX, hubY, 14, 0, Math.PI * 2); gx.fill();
+  gx.fillStyle = '#cfe3ee'; gx.fillText('날개', hubX, hubY + 115);
+
+  gx.strokeStyle = '#9aa7b0'; gx.lineWidth = 8;
+  gx.beginPath(); gx.moveTo(hubX + 14, hubY); gx.lineTo(280, hubY); gx.stroke();
+
+  const g1x = 320, g1y = hubY, g1r = 22;
+  const g2x = 368, g2y = hubY - 2, g2r = 12;
+  drawGear(g1x, g1y, g1r, 8, angle);
+  drawGear(g2x, g2y, g2r, 6, -angle * (g1r / g2r));
+  gx.fillStyle = '#cfe3ee'; gx.fillText('기어', (g1x + g2x) / 2, g1y + 46);
+
+  const genX = 435, genY = hubY;
+  gx.fillStyle = '#4a3f78'; gx.fillRect(genX - 28, genY - 20, 78, 40);
+  gx.save(); gx.translate(genX + 10, genY); gx.rotate(angle * (g1r / g2r));
+  gx.strokeStyle = '#ffd54f'; gx.lineWidth = 3;
+  gx.beginPath(); gx.moveTo(-14, 0); gx.lineTo(14, 0); gx.moveTo(0, -14); gx.lineTo(0, 14); gx.stroke();
+  gx.restore();
+  gx.fillStyle = '#cfe3ee'; gx.fillText('발전기', genX + 10, genY - 34);
+
+  drawOutput(CW - 65, 65, brightFromSpeed(speed));
+}
+
+/* ---- 조력발전 (밀물·썰물 + 낙차 크기를 보여주는 자체 일러스트) ---- */
+function drawTidal() {
+  gx.clearRect(0, 0, CW, CH);
+  gx.textAlign = 'center'; gx.textBaseline = 'alphabetic';
+  const isEbb = tidalState.phase === 'ebb';
+  const isHighHead = tidalState.strengthKey === 'high';
+
+  gx.fillStyle = isEbb ? '#ADFF2F' : '#4fc3f7';
+  gx.font = 'bold 15px Segoe UI'; gx.textAlign = 'left';
+  gx.fillText(isEbb ? '🌊 썰물일 때 - 발전 중' : '🌊 밀물일 때 - 물 채우는 중', 18, 20);
+  gx.fillStyle = '#8ab8cc'; gx.font = '12px Segoe UI';
+  gx.fillText(isHighHead ? '⬆️ 낙차 클 때 (물살 빠름)' : '⬇️ 낙차 작을 때 (물살 느림)', 18, 37);
+
+  const seaX = 50, seaW = 110, basinX = 400, basinW = 110;
+  const boxTop = 170, boxBottom = 290;
+  const seaLevel = 190;
+  const headGap = isHighHead ? 55 : 16;
+  const basinLevel = isEbb
+    ? Math.max(boxTop, seaLevel - headGap)
+    : Math.min(boxBottom - 8, seaLevel + headGap);
+
+  gx.strokeStyle = '#3a4652'; gx.lineWidth = 2;
+  gx.strokeRect(seaX, boxTop, seaW, boxBottom - boxTop);
+  gx.strokeRect(basinX, boxTop, basinW, boxBottom - boxTop);
+
+  gx.fillStyle = '#2b6cb0';
+  gx.fillRect(seaX, seaLevel, seaW, boxBottom - seaLevel);
+  gx.fillRect(basinX, basinLevel, basinW, boxBottom - basinLevel);
+
+  gx.strokeStyle = 'rgba(255,255,255,.5)'; gx.lineWidth = 1.5;
+  gx.setLineDash([4, 4]);
+  gx.beginPath(); gx.moveTo(seaX, seaLevel); gx.lineTo(basinX + basinW, seaLevel); gx.stroke();
+  gx.setLineDash([]);
+
+  gx.fillStyle = '#cfe3ee'; gx.font = '13px Segoe UI'; gx.textAlign = 'center';
+  gx.fillText('바다', seaX + seaW / 2, boxTop - 10);
+  gx.fillText('저수지', basinX + basinW / 2, boxTop - 10);
+
+  gx.fillStyle = '#8d99a6';
+  gx.fillRect(210, 110, 140, 210);
+
+  gx.strokeStyle = '#cfe3ee'; gx.lineWidth = 2;
+  gx.strokeRect(250, 178, 60, 35);
+  if (isEbb) { gx.fillStyle = '#3a4652'; gx.fillRect(252, 180, 56, 31); }
+  gx.fillStyle = '#cfe3ee'; gx.fillText('수문', 280, 165);
+
+  gx.strokeStyle = '#cfe3ee';
+  gx.strokeRect(250, 258, 60, 40);
+  gx.fillStyle = '#3a4652';
+  gx.beginPath(); gx.arc(280, 278, 26, 0, Math.PI * 2); gx.fill();
+  gx.save();
+  gx.translate(280, 278);
+  gx.rotate(isEbb ? angle : 0);
+  gx.strokeStyle = isEbb ? '#e08a3c' : '#5a6b78';
+  gx.lineWidth = isEbb ? 3 + tidalState.strength / 30 : 4;
+  gx.lineCap = 'round';
+  for (let i = 0; i < 6; i++) { gx.save(); gx.rotate(i * Math.PI / 3); gx.beginPath(); gx.moveTo(0, 0); gx.lineTo(19, 0); gx.stroke(); gx.restore(); }
+  gx.restore();
+  gx.fillStyle = '#cfe3ee'; gx.fillText('터빈', 280, 322);
+
+  const flowCount = 3 + Math.round(tidalState.strength / 24);
+  const flowR = 3 + tidalState.strength / 45;
+  const path = isEbb
+    ? [{ x: 400, y: 278 }, { x: 350, y: 278 }, { x: 210, y: 278 }, { x: 160, y: 278 }]
+    : [{ x: 160, y: 196 }, { x: 400, y: 196 }];
+  drawFlowParticles(path, tidalState.flowAnim, flowCount, '#ffffff', flowR);
+
+  drawOutput(CW - 55, 60, isEbb ? brightFromSpeed(tidalState.strength) : 0);
+}
+
+// 초기 화면(정지 상태) 렌더
+drawHydro(0);
+</script>
+</body>
+</html>
