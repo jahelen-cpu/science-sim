@@ -1354,7 +1354,7 @@
         '<button class="btn ghost" id="pdfSubmitBtn" '+(pdfBtnDisabled?'disabled':'')+' onclick="App.downloadPdf()">📄 제출용 PDF 저장</button>'+
         (count<MAX_MASTERPLAN? '<button class="btn" onclick="App.nav(\'select\')">'+SIM_CONFIG.addAnimalButton+'</button>' : '')+
       '</div></div>'+
-      '<div style="margin-top:8px;font-size:.82rem;color:var(--mist);">'+(!state.zooEvaluated||!full? SIM_CONFIG.pdfBeforeEval : '')+SIM_CONFIG.pdfInstruction+'</div>'+
+      '<div style="margin-top:8px;font-size:.82rem;color:var(--mist);">'+(!state.zooEvaluated||!canEval? SIM_CONFIG.pdfBeforeEval : '')+SIM_CONFIG.pdfInstruction+'</div>'+
     '</div>';
 
     [0,1].forEach(function(i){
