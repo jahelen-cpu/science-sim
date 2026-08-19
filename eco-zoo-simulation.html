@@ -152,8 +152,20 @@
     background:transparent; color:var(--ink); border:1px solid var(--line);
   }
   .btn.ghost:hover{ background:var(--chip-bg); }
-  .btn-row{ display:flex; gap:10px; justify-content:space-between; margin-top:22px; }
-  .btn-row .right{ display:flex; gap:10px; }
+  .btn-row{ display:flex; gap:10px; justify-content:space-between; margin-top:22px; flex-wrap:wrap; }
+  .btn-row .right{ display:flex; gap:10px; flex-wrap:wrap; align-items:flex-start; }
+  .btn-row.save-row{ justify-content:center; margin-bottom:-6px; }
+  .save-cta{
+    border:2px dashed var(--moss); color:var(--moss-deep); font-weight:800; padding:10px 26px;
+  }
+  .save-cta:hover{ background:var(--chip-bg); }
+  .mp-add-btn{
+    background:#FFD400; border:2px solid var(--moss-deep); color:#1a3fd6;
+  }
+  .mp-add-btn:hover{ background:#ffdc33; }
+  .mp-add-wrap{ display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .mp-add-hint{ font-size:.76rem; color:var(--ink-soft); text-align:center; white-space:nowrap; }
+  @media (max-width:520px){ .mp-add-hint{ white-space:normal; } }
 
   /* ---------- animal select grid ---------- */
   .animal-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
@@ -678,6 +690,39 @@
 
   /* ============ RENDER HELPERS ============ */
   var shell = document.getElementById('shell');
+  var SIM_CONFIG = {
+    title: '생태 동물원 설계 시뮬레이션',
+    brand: 'Eco Zoo Design Lab',
+    introEyebrow: '프로젝트 활동 · 생태 동물원 만들기',
+    introHeading: '동물의 권리와 생태적 복지를 함께 생각하는 동물원 설계',
+    thesis: '모든 동물이 안전하고 편안하게 살아갈 수 있는 서식지를 만드는 것',
+    introNote: '동물을 단순히 감상하는 공간이 아니라, 자신들의 본래 습성과 권리를 존중하는 생활 환경을 설계해보세요.',
+    selectTitle: '동물 선택',
+    selectSubtitle: '동물의 서식 환경·개체 수·행동 특성을 고려해 첫 동물을 고르세요.',
+    masterplanTitle: '나의 동물원 설계도',
+    masterplanSubtitle: '5개 서식 구역 중 추가한 동물의 기후·크기·서식 환경에 맞는 곳에 자동으로 배치돼요. 최소 3종, 최대 5종까지 채울 수 있어요.',
+    saveLabel: '저장',
+    loadLabel: '불러오기',
+    resetLabel: '처음부터 다시하기',
+    startButton: '시작하기',
+    backButton: '← 돌아가기',
+    addAnimalButton: '동물 추가하러 가기',
+    introPhotoAlt: '생태 환경을 갖춘 동물원 예시 사진',
+    introPhotoCaption: '아름다운 생태환경을 갖춘 동물원을 설계해보자',
+    wildSanctuaryNote: '🏆 <b>최우수 생태 동물원(Wild Sanctuary)</b>을 설계해보자. 설계도에 넣은 동물(3~5종) 모두 서식 환경이 S 등급을 받으면 최우수 생태 동물원이 될 수 있어요.',
+    printTitle: '생태 동물원 설계 시뮬레이션 — 수행평가 제출물',
+    printHeaderSubmitter: '제출자',
+    printHeaderDate: '제출일',
+    masterplanPendingTitle: '아직 평가하지 않았어요',
+    masterplanPendingText: '동물 3마리 이상을 채운 뒤 평가할 수 있어요',
+    masterplanPendingTextFull: '아래 "전체 동물원 평가" 버튼을 눌러주세요.',
+    submitterInfoTitle: '제출자 정보 (2인 1조)',
+    submitterInfoHint: '최소 한 명의 학번·이름을 입력해야 PDF를 저장할 수 있어요. 짝이 없다면 한 명만 입력해도 됩니다.',
+    submitterInfoReady: '✓ 제출자 정보가 입력됐어요',
+    submitterInfoMissing: '학번과 이름을 최소 한 명 입력해주세요',
+    pdfInstruction: 'PDF 저장 버튼을 누르면 인쇄 대화상자가 열려요. 대상(프린터)을 <b>PDF로 저장</b>으로 선택하면 파일로 저장됩니다.',
+    pdfBeforeEval: '⚠ 먼저 "전체 동물원 평가"를 완료해야 제출용 PDF를 저장할 수 있어요. '
+  };
   var STEP_ORDER = ['select','research','design','result'];
   var STEP_TITLE = {select:'01 · 동물 선택', research:'02 · 조사', design:'03 · 설계', result:'04 · 평가'};
 
@@ -712,6 +757,8 @@
   /* ============ MASTERPLAN (동물원 설계도) ============ */
   var pendingAdd = null;
   var campaignFormOpen = false;
+  var MAX_MASTERPLAN = 5;
+  var MIN_MASTERPLAN_EVAL = 3;
   var ZONE_DEFS = [
     {label:'1', name:'초원 (대형 초식동물 구역)', cx:230, cy:200, r:120, tempCenter:3, preferLarge:true,  affinity:['grass','warmpool']},
     {label:'2', name:'사막·관목지대',            cx:150, cy:575, r:95,  tempCenter:4, preferLarge:false, affinity:['desertsand','den']},
@@ -844,13 +891,13 @@
     }).join('');
     return ''+
       '<div class="topbar">'+
-        '<div class="brand"><span class="eyebrow">Eco Zoo Design Lab</span><span class="title">생태 동물원 설계 시뮬레이션</span></div>'+
+        '<div class="brand"><span class="eyebrow">'+SIM_CONFIG.brand+'</span><span class="title">'+SIM_CONFIG.title+'</span></div>'+
         (state.animalId && state.screen!=='masterplan' ? '<div class="steps">'+tabs+'</div>' : '')+
         '<div class="topbar-actions">'+
-          '<button class="mp-link" onclick="App.viewMasterplan()">🏞️ 나의 동물원 ('+state.masterplan.length+'/3)</button>'+
-          '<button class="save-link" onclick="App.exportProgress()" title="지금까지 진행 상황을 파일로 저장해요. 다른 기기에서도 이 파일로 이어할 수 있어요.">💾 저장</button>'+
-          '<button class="save-link" onclick="App.triggerImport()" title="저장해둔 파일을 불러와 이어서 진행해요.">📂 불러오기</button>'+
-          '<button class="reset-link" onclick="App.reset()">처음부터 다시하기</button>'+
+          '<button class="mp-link" onclick="App.viewMasterplan()">🏞️ '+SIM_CONFIG.masterplanTitle+' ('+state.masterplan.length+'/'+MAX_MASTERPLAN+')</button>'+
+          '<button class="save-link" onclick="App.exportProgress()" title="지금까지 진행 상황을 파일로 저장해요. 다른 기기에서도 이 파일로 이어할 수 있어요.">💾 '+SIM_CONFIG.saveLabel+'</button>'+
+          '<button class="save-link" onclick="App.triggerImport()" title="저장해둔 파일을 불러와 이어서 진행해요.">📂 '+SIM_CONFIG.loadLabel+'</button>'+
+          '<button class="reset-link" onclick="App.reset()">'+SIM_CONFIG.resetLabel+'</button>'+
         '</div>'+
       '</div>';
   }
@@ -859,19 +906,19 @@
   function renderIntro(){
     shell.innerHTML = topbarHtml() + ''+
     '<div class="card hero">'+
-      '<span class="eyebrow">프로젝트 활동 · 생태 동물원 만들기</span>'+
-      '<h1>내가 설계한 동물원, 그 동물은 정말 행복할까?</h1>'+
-      '<blockquote class="thesis">인간과 동물은 서로 영향을 주고받는 관계에 있으며, 더 큰 힘을 가진 인간이 동물의 기본적 권리를 존중하고 그에 따르는 책임을 다할 때 서로 다른 존재가 함께 살아가는 <b>공존</b>이 가능해집니다.</blockquote>'+
-      '<p style="margin:0;color:var(--ink-soft);font-size:.92rem;">동물 한 종을 선택해 실제 자료를 조사하고, 한정된 예산 안에서 서식지를 설계해보세요. 완성된 동물원은 <b>생태 지수</b>와 <b>행복 지수</b>로 평가됩니다. (동물 이미지는 지금은 임시 아이콘이며, 추후 실제 사진 자료로 교체될 예정입니다.)</p>'+
+      '<span class="eyebrow">'+SIM_CONFIG.introEyebrow+'</span>'+
+      '<h1>'+SIM_CONFIG.introHeading+'</h1>'+
+      '<blockquote class="thesis"><b>공존</b>을 생각하는 동물원 설계, '+SIM_CONFIG.thesis+'</blockquote>'+
+      '<p style="margin:0;color:var(--ink-soft);font-size:.92rem;">'+SIM_CONFIG.introNote+'</p>'+
       '<div class="flow">'+
         '<div class="flow-item"><span class="eyebrow">Step 01</span><p>동물을 선택하고 특징을 확인해요.</p></div>'+
         '<div class="flow-item"><span class="eyebrow">Step 02</span><p>검색으로 서식지·습성을 조사해 기록해요.</p></div>'+
         '<div class="flow-item"><span class="eyebrow">Step 03</span><p>예산 안에서 공간·환경·시설을 설계해요.</p></div>'+
         '<div class="flow-item"><span class="eyebrow">Step 04</span><p>생태 지수·행복 지수로 평가받아요.</p></div>'+
       '</div>'+
-      '<div class="wild-sanctuary-note">🏆 <b>최우수 생태 동물원(Wild Sanctuary)을 설계해보자.</b> 세 종류의 동물 모두 서식 환경이 S 등급을 받으면 최우수 생태 동물원이 될 수 있어요.</div>'+
-      '<figure class="intro-photo"><img src="'+INTRO_IMG_URI+'" alt="생태 환경을 갖춘 동물원 예시 사진"/><figcaption>아름다운 생태환경을 갖춘 동물원을 설계해보자</figcaption></figure>'+
-      '<div class="cta-row"><button class="btn" onclick="App.nav(\'select\')">시작하기</button></div>'+
+      '<div class="wild-sanctuary-note">'+SIM_CONFIG.wildSanctuaryNote+'</div>'+
+      '<figure class="intro-photo"><img src="'+INTRO_IMG_URI+'" alt="'+SIM_CONFIG.introPhotoAlt+'"/><figcaption>'+SIM_CONFIG.introPhotoCaption+'</figcaption></figure>'+
+      '<div class="cta-row"><button class="btn" onclick="App.nav(\'select\')">'+SIM_CONFIG.startButton+'</button></div>'+
     '</div>';
   }
 
@@ -886,8 +933,8 @@
     }).join('');
     shell.innerHTML = topbarHtml() + ''+
     '<div class="card">'+
-      '<div class="section-title">어떤 동물의 서식지를 설계할까요?</div>'+
-      '<div class="section-sub">서울어린이대공원 동물원 사육 목록을 참고해 절반가량을 구성했어요. 카드를 클릭하면 조사 단계로 이동합니다.</div>'+
+      '<div class="section-title">'+SIM_CONFIG.selectTitle+'</div>'+
+      '<div class="section-sub">'+SIM_CONFIG.selectSubtitle+'</div>'+
       '<div class="animal-grid">'+cards+'</div>'+
     '</div>';
   }
@@ -1154,28 +1201,40 @@
     '</div>';
   }
 
-  function buildMasterplanActionHtml(a, scores){
+  function buildMasterplanInfoHtml(a, scores){
     if(scores.overall<70){
       return '<div class="fact-box">🏞️ 종합 점수가 70점(A등급) 이상이면 이 서식지를 동물원 설계도에 추가할 수 있어요.</div>';
     }
     var already = state.masterplan.some(function(m){ return m.animalId===a.id; });
     if(already){
-      return '<div style="margin-top:14px;"><span class="mp-banner">✓ 이미 설계도에 있어요</span>'+
-        '<button class="btn ghost" onclick="App.viewMasterplan()">설계도 보기</button> '+
-        '<button class="btn ghost" onclick="App.addToMasterplan(\''+a.id+'\')">🔄 이 결과로 업데이트하기</button></div>';
+      return '<div style="margin-top:14px;"><span class="mp-banner">✓ 이미 설계도에 있어요</span> '+
+        '<button class="btn ghost" onclick="App.viewMasterplan()">설계도 보기</button></div>';
     }
-    if(state.masterplan.length<3){
-      return '<div style="margin-top:14px;"><button class="btn" onclick="App.addToMasterplan(\''+a.id+'\')">🏞️ 동물원 설계도에 추가하기 ('+state.masterplan.length+'/3)</button></div>';
-    }
-    if(pendingAdd===a.id){
+    if(state.masterplan.length>=MAX_MASTERPLAN && pendingAdd===a.id){
       var chooser = state.masterplan.map(function(m,idx){
         var ma = byId(m.animalId);
         return '<button class="mp-chip" onclick="App.replaceInMasterplan('+idx+',\''+a.id+'\')">'+ma.emoji+' '+ma.name+' 자리에 넣기</button>';
       }).join('');
-      return '<div class="mp-replace"><div class="field-sub">이미 3종이 채워졌어요. 누구 자리에 넣을까요?</div><div class="chip-grid">'+chooser+'</div>'+
+      return '<div class="mp-replace"><div class="field-sub">이미 '+MAX_MASTERPLAN+'종이 채워졌어요. 누구 자리에 넣을까요?</div><div class="chip-grid">'+chooser+'</div>'+
         '<button class="btn ghost" style="margin-top:10px;" onclick="App.cancelPendingAdd()">취소</button></div>';
     }
-    return '<div style="margin-top:14px;"><button class="btn ghost" onclick="App.requestReplace(\''+a.id+'\')">🏞️ 설계도가 다 찼어요 — 교체하기</button></div>';
+    return '';
+  }
+
+  function masterplanAddButtonHtml(a, scores){
+    if(scores.overall<70) return '';
+    var btn;
+    var already = state.masterplan.some(function(m){ return m.animalId===a.id; });
+    if(already){
+      btn = '<button class="btn mp-add-btn" onclick="App.addToMasterplan(\''+a.id+'\')">🔄 이 결과로 업데이트하기</button>';
+    } else if(state.masterplan.length<MAX_MASTERPLAN){
+      btn = '<button class="btn mp-add-btn" onclick="App.addToMasterplan(\''+a.id+'\')">🏞️ 동물원 설계도에 추가하기 ('+state.masterplan.length+'/'+MAX_MASTERPLAN+')</button>';
+    } else if(pendingAdd===a.id){
+      return '';
+    } else {
+      btn = '<button class="btn mp-add-btn" onclick="App.requestReplace(\''+a.id+'\')">🏞️ 설계도가 다 찼어요 — 교체하기</button>';
+    }
+    return '<span class="mp-add-wrap">'+btn+'<span class="mp-add-hint">('+MIN_MASTERPLAN_EVAL+'개 이상 담아야 전체 동물원 평가가 가능해요)</span></span>';
   }
 
   function renderResult(){
@@ -1213,20 +1272,21 @@
       '</div>'+
       '<div class="fact-box">🔎 '+a.name+' 관찰노트: '+escapeHtml(a.tagline)+'</div>'+
       '<div class="reflection"><b>공존을 위한 질문 —</b> '+reflect+'</div>'+
-      buildMasterplanActionHtml(a, scores)+
+      buildMasterplanInfoHtml(a, scores)+
+      '<div class="btn-row save-row"><button class="btn ghost save-cta" onclick="App.exportProgress()">💾 진행 상황을 파일로 저장하기</button></div>'+
       '<div class="btn-row"><button class="btn ghost" onclick="App.nav(\'design\')">← 다시 설계하기</button>'+
-      '<div class="right">'+(state.masterplan.length>=3
-        ? '<button class="btn" onclick="App.viewMasterplan()">🏞️ 동물원 설계도로 이동</button>'
-        : '<button class="btn" onclick="App.restartWithNewAnimal()">다른 동물로 새로 시작</button>')+
+      '<div class="right">'+masterplanAddButtonHtml(a, scores)+
+        '<button class="btn" onclick="App.restartWithNewAnimal()">다른 동물로 새로 시작</button>'+
       '</div></div>'+
     '</div>';
   }
 
-  function zooGradeInfo(sCount){
-    if(sCount>=3) return {key:'wild-sanctuary', medal:'🥇', title:'최우수 · Wild Sanctuary', sub:'세 서식지 모두 S등급을 달성했어요. 인간과 동물의 공존을 모범적으로 실현했습니다.'};
-    if(sCount===2) return {key:'eco-habitat', medal:'🥈', title:'우수 · Eco Habitat', sub:'대부분의 서식지에서 동물의 권리를 충실히 존중했어요.'};
-    if(sCount===1) return {key:'green-shelter', medal:'🥉', title:'보통 · Green Shelter', sub:'기본은 지켰지만, 아직 모든 동물에게 공평한 공존을 제공하지 못했어요.'};
-    return {key:'needs-improvement', medal:'⚠️', title:'미흡 · 개선 요망', sub:'S등급을 받은 서식지가 없어요. 다시 설계해서 동물의 필요를 더 충실히 채워보세요.'};
+  function zooGradeInfo(sCount, total){
+    var deficit = total - sCount;
+    if(deficit<=0) return {key:'wild-sanctuary', medal:'🥇', title:'최우수 · Wild Sanctuary', sub:'선택한 서식지 모두 S등급을 달성했어요. 인간과 동물의 공존을 모범적으로 실현했습니다.'};
+    if(deficit===1) return {key:'eco-habitat', medal:'🥈', title:'우수 · Eco Habitat', sub:'대부분의 서식지에서 동물의 권리를 충실히 존중했어요.'};
+    if(deficit===2) return {key:'green-shelter', medal:'🥉', title:'보통 · Green Shelter', sub:'기본은 지켰지만, 아직 모든 동물에게 공평한 공존을 제공하지 못했어요.'};
+    return {key:'needs-improvement', medal:'⚠️', title:'미흡 · 개선 요망', sub:'S등급을 받은 서식지가 부족해요. 다시 설계해서 동물의 필요를 더 충실히 채워보세요.'};
   }
 
   function renderMasterplan(){
@@ -1248,23 +1308,24 @@
       '</div>';
     }).join('');
 
-    var full = state.masterplan.length===3;
+    var count = state.masterplan.length;
+    var canEval = count>=MIN_MASTERPLAN_EVAL;
     var sCount = state.masterplan.filter(function(e){ return e.grade==='S'; }).length;
-    var zGrade = zooGradeInfo(sCount);
+    var zGrade = zooGradeInfo(sCount, count);
 
     var evalBanner;
-    if(state.zooEvaluated && full){
+    if(state.zooEvaluated && canEval){
       evalBanner = '<div class="zoo-grade-banner '+zGrade.key+'">'+
         '<span class="zg-medal">'+zGrade.medal+'</span>'+
-        '<div class="zg-text"><span class="zg-title">'+zGrade.title+'</span><span class="zg-sub">'+zGrade.sub+' (S등급 '+sCount+'/3)</span></div>'+
+        '<div class="zg-text"><span class="zg-title">'+zGrade.title+'</span><span class="zg-sub">'+zGrade.sub+' (S등급 '+sCount+'/'+count+')</span></div>'+
       '</div>';
     } else {
       evalBanner = '<div class="zoo-grade-banner pending">'+
-        '<div class="zg-text"><span class="zg-title">아직 평가하지 않았어요</span><span class="zg-sub">'+(full? '아래 "전체 동물원 평가" 버튼을 눌러주세요.' : '동물 3마리를 모두 채운 뒤 평가할 수 있어요 ('+state.masterplan.length+'/3).')+'</span></div>'+
+        '<div class="zg-text"><span class="zg-title">'+SIM_CONFIG.masterplanPendingTitle+'</span><span class="zg-sub">'+(canEval? SIM_CONFIG.masterplanPendingTextFull : SIM_CONFIG.masterplanPendingText+' ('+count+'/'+MIN_MASTERPLAN_EVAL+').')+'</span></div>'+
       '</div>';
     }
 
-    var evalBtnDisabled = !full;
+    var evalBtnDisabled = !canEval;
     var submitterRows = state.submitters.map(function(s, i){
       return '<div class="submitter-row">'+
         '<span class="submitter-label">학생 '+(i+1)+'</span>'+
@@ -1272,28 +1333,28 @@
         '<input type="text" maxlength="12" class="submitter-name" data-sub-name="'+i+'" placeholder="이름" value="'+escapeHtml(s.name)+'">'+
       '</div>';
     }).join('');
-    var pdfBtnDisabled = !(state.zooEvaluated && full && submittersOk());
+    var pdfBtnDisabled = !(state.zooEvaluated && canEval && submittersOk());
 
     shell.innerHTML = topbarHtml() + ''+
     '<div class="card">'+
       evalBanner+
-      '<div class="section-title" style="margin-top:16px;">🏞️ 나의 동물원 설계도</div>'+
-      '<div class="section-sub">5개 서식 구역 중 추가한 동물의 기후·크기·서식 환경에 맞는 곳에 자동으로 배치돼요. 최대 3마리까지 채울 수 있어요.</div>'+
+      '<div class="section-title" style="margin-top:16px;">🏞️ '+SIM_CONFIG.masterplanTitle+'</div>'+
+      '<div class="section-sub">'+SIM_CONFIG.masterplanSubtitle+'</div>'+
       buildMasterplanSVG()+
       '<div class="mp-slots">'+slotsHtml+'</div>'+
       '<div class="field-group" style="margin-top:18px;">'+
-        '<div class="field-title">제출자 정보 (2인 1조)</div>'+
-        '<div class="field-sub">최소 한 명의 학번·이름을 입력해야 PDF를 저장할 수 있어요. 짝이 없다면 한 명만 입력해도 됩니다.</div>'+
+        '<div class="field-title">'+SIM_CONFIG.submitterInfoTitle+'</div>'+
+        '<div class="field-sub">'+SIM_CONFIG.submitterInfoHint+'</div>'+
         submitterRows+
-        '<div class="q-status" id="submitterStatus">'+(submittersOk()?'✓ 제출자 정보가 입력됐어요':'학번과 이름을 최소 한 명 입력해주세요')+'</div>'+
+        '<div class="q-status" id="submitterStatus">'+(submittersOk()?SIM_CONFIG.submitterInfoReady:SIM_CONFIG.submitterInfoMissing)+'</div>'+
       '</div>'+
-      '<div class="btn-row"><button class="btn ghost" onclick="App.closeMasterplan()">← 돌아가기</button>'+
+      '<div class="btn-row"><button class="btn ghost" onclick="App.closeMasterplan()">'+SIM_CONFIG.backButton+'</button>'+
       '<div class="right">'+
         '<button class="btn" '+(evalBtnDisabled?'disabled':'')+' onclick="App.evaluateZoo()">🏆 전체 동물원 평가</button>'+
         '<button class="btn ghost" id="pdfSubmitBtn" '+(pdfBtnDisabled?'disabled':'')+' onclick="App.downloadPdf()">📄 제출용 PDF 저장</button>'+
-        (state.masterplan.length<3? '<button class="btn" onclick="App.nav(\'select\')">동물 추가하러 가기</button>' : '')+
+        (count<MAX_MASTERPLAN? '<button class="btn" onclick="App.nav(\'select\')">'+SIM_CONFIG.addAnimalButton+'</button>' : '')+
       '</div></div>'+
-      '<div style="margin-top:8px;font-size:.82rem;color:var(--mist);">'+(!state.zooEvaluated||!full? '⚠ 먼저 "전체 동물원 평가"를 완료해야 제출용 PDF를 저장할 수 있어요. ' : '')+'PDF 저장 버튼을 누르면 인쇄 대화상자가 열려요. 대상(프린터)을 <b>PDF로 저장</b>으로 선택하면 파일로 저장됩니다.</div>'+
+      '<div style="margin-top:8px;font-size:.82rem;color:var(--mist);">'+(!state.zooEvaluated||!full? SIM_CONFIG.pdfBeforeEval : '')+SIM_CONFIG.pdfInstruction+'</div>'+
     '</div>';
 
     [0,1].forEach(function(i){
@@ -1314,7 +1375,7 @@
       statusEl.textContent = ok ? '✓ 제출자 정보가 입력됐어요' : '학번과 이름을 최소 한 명 입력해주세요';
       statusEl.className = 'q-status'+(ok?' ok':'');
     }
-    if(btn) btn.disabled = !(state.zooEvaluated && state.masterplan.length===3 && ok);
+    if(btn) btn.disabled = !(state.zooEvaluated && state.masterplan.length>=MIN_MASTERPLAN_EVAL && ok);
   }
 
   function buildPrintSheetHtml(){
@@ -1345,13 +1406,14 @@
     }).join('');
     var emptyNote = state.masterplan.length===0
       ? '<p style="color:#a33;font-size:.85rem;">아직 동물원 설계도에 추가된 동물이 없습니다. 먼저 A등급(70점) 이상 설계를 완성해 추가해주세요.</p>' : '';
-    var full = state.masterplan.length===3;
+    var psCount = state.masterplan.length;
+    var canEvalPrint = psCount>=MIN_MASTERPLAN_EVAL;
     var sCount = state.masterplan.filter(function(e){ return e.grade==='S'; }).length;
-    var zGrade = full ? zooGradeInfo(sCount) : null;
-    var zooGradeLine = (full && state.zooEvaluated)
-      ? '<div class="ps-zoo-grade"><b>전체 동물원 평가: '+zGrade.title+'</b> — S등급 '+sCount+'/3마리</div>' : '';
-    var gradeBadge = (full && state.zooEvaluated)
-      ? '<div class="ps-grade-badge '+zGrade.key+'"><span class="ps-medal">'+zGrade.medal+'</span><div><b>'+zGrade.title+'</b><br><span>S등급 '+sCount+'/3마리 달성</span></div></div>'
+    var zGrade = canEvalPrint ? zooGradeInfo(sCount, psCount) : null;
+    var zooGradeLine = (canEvalPrint && state.zooEvaluated)
+      ? '<div class="ps-zoo-grade"><b>전체 동물원 평가: '+zGrade.title+'</b> — S등급 '+sCount+'/'+psCount+'마리</div>' : '';
+    var gradeBadge = (canEvalPrint && state.zooEvaluated)
+      ? '<div class="ps-grade-badge '+zGrade.key+'"><span class="ps-medal">'+zGrade.medal+'</span><div><b>'+zGrade.title+'</b><br><span>S등급 '+sCount+'/'+psCount+'마리 달성</span></div></div>'
       : '';
     var mapSection = state.masterplan.length
       ? '<section class="ps-map">'+gradeBadge+'<h2>🏞️ 나의 동물원 설계도</h2>'+buildMasterplanSVG()+'</section>'
@@ -1366,10 +1428,10 @@
       .join('   ·   ');
     return ''+
       '<div class="ps-header">'+
-        '<h1>생태 동물원 설계 시뮬레이션 — 수행평가 제출물</h1>'+
-        '<div class="ps-meta"><span>제출자: '+escapeHtml(submitterNames||'______________')+'</span><span>제출일: '+todayStr+'</span></div>'+
+        '<h1>'+SIM_CONFIG.printTitle+'</h1>'+
+        '<div class="ps-meta"><span>'+SIM_CONFIG.printHeaderSubmitter+': '+escapeHtml(submitterNames||'______________')+'</span><span>'+SIM_CONFIG.printHeaderDate+': '+todayStr+'</span></div>'+
         zooGradeLine+
-        '<blockquote>인간과 동물은 서로 영향을 주고받는 관계에 있으며, 더 큰 힘을 가진 인간이 동물의 기본적 권리를 존중하고 그에 따르는 책임을 다할 때 서로 다른 존재가 함께 살아가는 공존이 가능해집니다.</blockquote>'+
+        '<blockquote>'+SIM_CONFIG.thesis+'</blockquote>'+
       '</div>'+
       emptyNote+sections+mapSection;
   }
@@ -1450,7 +1512,7 @@
       saveState(); renderResult();
     },
     evaluateZoo: function(){
-      if(state.masterplan.length!==3) return;
+      if(state.masterplan.length<MIN_MASTERPLAN_EVAL) return;
       state.zooEvaluated = true;
       saveState(); renderMasterplan();
     },
