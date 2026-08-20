@@ -170,23 +170,26 @@ h2 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
 .chain-arrow { color: #ADFF2F; font-weight: 900; margin: 0 2px; }
 .energy-term {
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: 34px; border: 2px dashed #ADFF2F; border-radius: 6px;
-  padding: 0 6px; color: #ADFF2F; cursor: pointer; font-weight: 800;
-  transition: background .15s, border-style .15s;
+  min-width: 34px; border: 2px dashed #4fc3f7; border-radius: 6px;
+  padding: 0 6px; cursor: pointer; font-weight: 800;
+  transition: background .15s, border-style .15s, border-color .15s;
 }
-.energy-term:hover { background: rgba(173,255,47,0.15); }
+.energy-term:not(.revealed):hover { background: rgba(79,195,247,0.15); }
+.energy-term.revealed:hover { background: rgba(173,255,47,0.15); }
 .energy-term.active { background: rgba(173,255,47,0.32); }
-.energy-term.revealed { border-style: solid; }
-.energy-term .term-hidden { font-size: 12px; }
-.energy-term .term-answer { display: none; }
+.energy-term.revealed { border-style: solid; border-color: #ADFF2F; }
+.energy-term .term-hidden { font-size: 12px; color: #4fc3f7; }
+.energy-term .term-answer { display: none; color: #ADFF2F; }
 .energy-term.revealed .term-hidden { display: none; }
 .energy-term.revealed .term-answer { display: inline; }
 .term-popup {
-  display: none; margin-top: 10px; font-size: 13.5px; line-height: 1.6; color: #cfe3ee;
+  height: 100px; overflow-y: auto; opacity: 0; visibility: hidden;
+  margin-top: 10px; font-size: 13.5px; line-height: 1.6; color: #cfe3ee;
   background: rgba(173,255,47,0.08); border: 1px solid rgba(173,255,47,0.3);
   border-radius: 10px; padding: 10px 14px;
+  transition: opacity .15s;
 }
-.term-popup.show { display: block; }
+.term-popup.show { opacity: 1; visibility: visible; }
 .term-popup b { color: #ADFF2F; }
 </style>
 </head>
