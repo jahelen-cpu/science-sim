@@ -157,6 +157,30 @@ h2 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
 
 .p-explain { font-size: 13.5px; line-height: 1.6; color: #cfe3ee; background: rgba(255,255,255,0.05); border-radius: 10px; padding: 12px 14px; }
 .p-explain b { color: #ADFF2F; }
+
+/* ---------- 에너지 전환 과정 ---------- */
+.energy-chain-wrap { width: 100%; margin: 10px 0 4px; }
+.energy-chain-title { font-size: 14px; font-weight: 700; color: #8ab8cc; margin-bottom: 8px; letter-spacing: 0.3px; }
+.energy-chain {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 4px;
+  font-size: 14.5px; font-weight: 600; color: #eee;
+  background: rgba(255,255,255,0.05); border-radius: 10px; padding: 12px 14px;
+}
+.chain-arrow { color: #ADFF2F; font-weight: 900; margin: 0 2px; }
+.energy-term {
+  display: inline-block; border: 2px solid #ADFF2F; border-radius: 6px;
+  padding: 0 5px; color: #ADFF2F; cursor: pointer; font-weight: 800;
+  transition: background .15s;
+}
+.energy-term:hover { background: rgba(173,255,47,0.15); }
+.energy-term.active { background: rgba(173,255,47,0.32); }
+.term-popup {
+  display: none; margin-top: 10px; font-size: 13.5px; line-height: 1.6; color: #cfe3ee;
+  background: rgba(173,255,47,0.08); border: 1px solid rgba(173,255,47,0.3);
+  border-radius: 10px; padding: 10px 14px;
+}
+.term-popup.show { display: block; }
+.term-popup b { color: #ADFF2F; }
 </style>
 </head>
 <body>
@@ -217,6 +241,11 @@ h2 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
     <button class="ov-close" id="principleClose">✕</button>
     <h2 id="principleTitle">🔬 발전기의 원리</h2>
     <p class="guide" id="principleTagline" style="margin-bottom:0;"></p>
+    <div class="energy-chain-wrap">
+      <div class="energy-chain-title">⚡ 에너지 전환 과정</div>
+      <div class="energy-chain" id="energyChain"></div>
+      <div class="term-popup" id="termPopup"></div>
+    </div>
     <div class="principle-layout">
       <canvas id="genCanvas" width="560" height="380"></canvas>
       <div class="p-sidebar">
@@ -301,6 +330,19 @@ const PRINCIPLE_META = {
   wind:    { label: '풍력발전의 원리', color: '#43A047', sliderLabel: '바람의 세기',   tagline: '바람이 날개를 돌리면, 기어를 거쳐 발전기가 전기를 만들어요!' },
   nuclear: { label: '원자력발전의 원리', color: '#7C4DFF', sliderLabel: '원자로 출력', tagline: '원자로의 열로 만든 증기가 터빈을 돌리면, 발전기가 전기를 만들어요!' },
   tidal:   { label: '조력발전의 원리', color: '#00ACC1', tagline: '밀물과 썰물의 물살이 터빈을 돌리면, 발전기가 전기를 만들어요!' }
+};
+
+const ENERGY_CHAINS = {
+  hydro:   ['물의 위치에너지', '물의 운동에너지', '발전기의 운동에너지', '전기에너지'],
+  thermal: ['연료의 화학에너지', '수증기의 운동에너지', '발전기의 운동에너지', '전기에너지'],
+  wind:    ['바람의 운동에너지', '발전기의 운동에너지', '전기에너지'],
+  tidal:   ['물의 운동에너지', '발전기의 운동에너지', '전기에너지'],
+  nuclear: ['연료의 화학에너지', '수증기의 운동에너지', '발전기의 운동에너지', '전기에너지']
+};
+
+const TERM_INFO = {
+  '위치': '⬆️ <b>위치 에너지</b><br>높은 곳에 있는 물체가 가지고 있는 에너지예요. 위치가 높을수록, 무게가 무거울수록 에너지가 커져요. (예: 댐 위쪽에 모인 물)',
+  '운동': '🏃 <b>운동 에너지</b><br>움직이고 있는 물체가 가지고 있는 에너지예요. 빠르게 움직일수록, 무게가 무거울수록 에너지가 커져요. (예: 흐르는 물, 부는 바람, 회전하는 터빈)'
 };
 
 /* ===================== 화면 전환 ===================== */
@@ -404,12 +446,44 @@ document.querySelectorAll('.tide-phase-btn').forEach(btn => {
   });
 });
 
+const energyChainEl = document.getElementById('energyChain');
+const termPopup = document.getElementById('termPopup');
+let activeTerm = null;
+
+function wrapTerms(text) {
+  return text.replace(/위치|운동/g, m => `<span class="energy-term" data-term="${m}">${m}</span>`);
+}
+
+function renderEnergyChain(key) {
+  const stages = ENERGY_CHAINS[key];
+  energyChainEl.innerHTML = stages.map(wrapTerms).join('<span class="chain-arrow"> → </span>');
+  termPopup.classList.remove('show');
+  activeTerm = null;
+}
+
+energyChainEl.addEventListener('click', e => {
+  const t = e.target.closest('.energy-term');
+  if (!t) return;
+  const term = t.dataset.term;
+  if (activeTerm === term) {
+    termPopup.classList.remove('show');
+    activeTerm = null;
+    energyChainEl.querySelectorAll('.energy-term.active').forEach(el => el.classList.remove('active'));
+    return;
+  }
+  activeTerm = term;
+  energyChainEl.querySelectorAll('.energy-term').forEach(el => el.classList.toggle('active', el.dataset.term === term));
+  termPopup.innerHTML = TERM_INFO[term];
+  termPopup.classList.add('show');
+});
+
 function openPrinciple(key) {
   curPrincipleKey = key;
   const meta = PRINCIPLE_META[key];
 
   principleTitle.textContent = '🔬 ' + meta.label;
   principleTagline.innerHTML = meta.tagline;
+  renderEnergyChain(key);
 
   speedInput.value = 0;
   speedVal.textContent = '0 (정지)';
