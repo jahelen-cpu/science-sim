@@ -168,12 +168,18 @@ h2 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
 }
 .chain-arrow { color: #ADFF2F; font-weight: 900; margin: 0 2px; }
 .energy-term {
-  display: inline-block; border: 2px solid #ADFF2F; border-radius: 6px;
-  padding: 0 5px; color: #ADFF2F; cursor: pointer; font-weight: 800;
-  transition: background .15s;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 34px; border: 2px dashed #ADFF2F; border-radius: 6px;
+  padding: 0 6px; color: #ADFF2F; cursor: pointer; font-weight: 800;
+  transition: background .15s, border-style .15s;
 }
 .energy-term:hover { background: rgba(173,255,47,0.15); }
 .energy-term.active { background: rgba(173,255,47,0.32); }
+.energy-term.revealed { border-style: solid; }
+.energy-term .term-hidden { font-size: 12px; }
+.energy-term .term-answer { display: none; }
+.energy-term.revealed .term-hidden { display: none; }
+.energy-term.revealed .term-answer { display: inline; }
 .term-popup {
   display: none; margin-top: 10px; font-size: 13.5px; line-height: 1.6; color: #cfe3ee;
   background: rgba(173,255,47,0.08); border: 1px solid rgba(173,255,47,0.3);
@@ -451,7 +457,9 @@ const termPopup = document.getElementById('termPopup');
 let activeTerm = null;
 
 function wrapTerms(text) {
-  return text.replace(/위치|운동/g, m => `<span class="energy-term" data-term="${m}">${m}</span>`);
+  return text.replace(/위치|운동/g, m =>
+    `<span class="energy-term" data-term="${m}"><span class="term-hidden">클릭</span><span class="term-answer">${m}</span></span>`
+  );
 }
 
 function renderEnergyChain(key) {
@@ -465,6 +473,8 @@ energyChainEl.addEventListener('click', e => {
   const t = e.target.closest('.energy-term');
   if (!t) return;
   const term = t.dataset.term;
+  t.classList.add('revealed');
+
   if (activeTerm === term) {
     termPopup.classList.remove('show');
     activeTerm = null;
