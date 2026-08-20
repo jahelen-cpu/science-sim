@@ -157,6 +157,7 @@ h2 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
 
 .p-explain { font-size: 13.5px; line-height: 1.6; color: #cfe3ee; background: rgba(255,255,255,0.05); border-radius: 10px; padding: 12px 14px; }
 .p-explain b { color: #ADFF2F; }
+.p-hint { color: #FFC700; font-weight: 800; font-size: 14.5px; }
 
 /* ---------- 에너지 전환 과정 ---------- */
 .energy-chain-wrap { width: 100%; margin: 10px 0 4px; }
@@ -524,22 +525,22 @@ function updateExplain() {
   switch (curPrincipleKey) {
     case 'hydro':
       html = s === 0
-        ? '취수구를 열어 물을 끌어들여 보세요.<br><br>물이 흐르지 않으면 터빈이 돌지 않아 전기가 만들어지지 않습니다.'
+        ? '<span class="p-hint">👉 슬라이더로 취수량을 조절해보세요!</span><br><br>물이 흐르지 않으면 터빈이 돌지 않아 전기가 만들어지지 않습니다.'
         : `취수구가 열려 물이 <b>${s < 40 ? '천천히' : s < 75 ? '적당히' : '힘차게'}</b> 흘러들고 있어요.<br><br>흐르는 물이 <b>발전터빈</b>을 돌리고, 터빈과 연결된 <b>발전기</b>가 함께 회전하며 전기를 만듭니다. 만들어진 전기는 <b>변압기</b>를 거쳐 <b>송전철탑</b>으로 보내집니다.`;
       break;
     case 'thermal':
       html = s === 0
-        ? '보일러에 불을 지펴 증기를 만들어 보세요.'
+        ? '<span class="p-hint">👉 슬라이더로 증기의 압력을 조절해보세요!</span>'
         : `보일러에서 연료를 태운 열로 물을 끓여 <b>${s < 40 ? '약한' : s < 75 ? '적당한' : '아주 강한'}</b> 증기를 만들고 있어요.<br><br>이 증기가 <b>터빈</b>의 날개를 세게 밀어 회전시키고, 터빈과 연결된 <b>발전기</b>가 함께 돌면서 전류(CURRENT)가 만들어집니다.`;
       break;
     case 'nuclear':
       html = s === 0
-        ? '원자로를 가동해 증기를 만들어 보세요.'
+        ? '<span class="p-hint">👉 슬라이더로 원자로 출력을 조절해보세요!</span>'
         : `원자로 속 <b>핵분열 반응</b>에서 나오는 열로 물을 끓여 증기를 만들고 있어요.<br><br>화력발전과 마찬가지로, 이 증기가 <b>터빈</b>과 <b>발전기</b>를 돌려 전기를 만듭니다. 연료를 태우지 않고도 아주 강력한 열을 얻을 수 있는 것이 특징입니다.`;
       break;
     case 'wind':
       html = s === 0
-        ? '바람이 불어와 날개를 밀어 보세요.'
+        ? '<span class="p-hint">👉 슬라이더로 바람의 양을 조절해보세요!</span>'
         : `바람이 불어 커다란 <b>날개</b>가 회전하고 있어요.<br><br>날개의 회전은 느리지만 힘이 세서, <b>기어</b>를 거치며 회전 속도를 높인 뒤 <b>발전기</b>를 빠르게 돌려 전기를 만듭니다.`;
       break;
     case 'tidal': {
