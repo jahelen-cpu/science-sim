@@ -259,6 +259,7 @@ h2 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
     <div class="principle-layout">
       <canvas id="genCanvas" width="560" height="380"></canvas>
       <div class="p-sidebar">
+        <div class="p-hint" id="sliderHint" style="display:none;"></div>
         <div id="sliderRow">
           <label for="speed" id="speedLabel">취수량 조절</label>
           <input type="range" id="speed" min="0" max="100" value="0">
@@ -335,10 +336,10 @@ const PLANTS = {
 };
 
 const PRINCIPLE_META = {
-  hydro:   { label: '수력발전의 원리', color: '#2196F3', sliderLabel: '취수량 조절', tagline: '물이 흐르면 터빈이 돌고, 터빈과 연결된 발전기가 전기를 만들어요!' },
-  thermal: { label: '화력발전의 원리', color: '#E53935', sliderLabel: '증기의 압력',   tagline: '뜨거운 증기가 터빈을 밀면, 터빈과 연결된 발전기가 전기를 만들어요!' },
-  wind:    { label: '풍력발전의 원리', color: '#43A047', sliderLabel: '바람의 세기',   tagline: '바람이 날개를 돌리면, 기어를 거쳐 발전기가 전기를 만들어요!' },
-  nuclear: { label: '원자력발전의 원리', color: '#7C4DFF', sliderLabel: '원자로 출력', tagline: '원자로의 열로 만든 증기가 터빈을 돌리면, 발전기가 전기를 만들어요!' },
+  hydro:   { label: '수력발전의 원리', color: '#2196F3', sliderLabel: '취수량 조절', tagline: '물이 흐르면 터빈이 돌고, 터빈과 연결된 발전기가 전기를 만들어요!', hint: '👉 슬라이더로 취수량을 조절해보세요!' },
+  thermal: { label: '화력발전의 원리', color: '#E53935', sliderLabel: '증기의 압력',   tagline: '뜨거운 증기가 터빈을 밀면, 터빈과 연결된 발전기가 전기를 만들어요!', hint: '👉 슬라이더로 증기의 압력을 조절해보세요!' },
+  wind:    { label: '풍력발전의 원리', color: '#43A047', sliderLabel: '바람의 세기',   tagline: '바람이 날개를 돌리면, 기어를 거쳐 발전기가 전기를 만들어요!', hint: '👉 슬라이더로 바람의 양을 조절해보세요!' },
+  nuclear: { label: '원자력발전의 원리', color: '#7C4DFF', sliderLabel: '원자로 출력', tagline: '원자로의 열로 만든 증기가 터빈을 돌리면, 발전기가 전기를 만들어요!', hint: '👉 슬라이더로 원자로 출력을 조절해보세요!' },
   tidal:   { label: '조력발전의 원리', color: '#00ACC1', tagline: '밀물과 썰물의 물살이 터빈을 돌리면, 발전기가 전기를 만들어요!' }
 };
 
@@ -431,6 +432,7 @@ const speedLabel = document.getElementById('speedLabel');
 const explainBox = document.getElementById('explainBox');
 const sliderRow = document.getElementById('sliderRow');
 const tidalRow = document.getElementById('tidalRow');
+const sliderHint = document.getElementById('sliderHint');
 
 const TIDE_STRENGTH = { high: 100, low: 38 };
 
@@ -503,6 +505,7 @@ function openPrinciple(key) {
   speedVal.textContent = '0 (정지)';
 
   if (key === 'tidal') {
+    sliderHint.style.display = 'none';
     sliderRow.style.display = 'none';
     tidalRow.style.display = 'block';
     tidalState.phase = 'flood';
@@ -511,6 +514,8 @@ function openPrinciple(key) {
     document.querySelectorAll('.tide-strength-btn').forEach(b => b.classList.toggle('on', b.dataset.strength === 'high'));
     document.querySelectorAll('.tide-phase-btn').forEach(b => b.classList.toggle('on', b.dataset.phase === 'flood'));
   } else {
+    sliderHint.textContent = meta.hint;
+    sliderHint.style.display = 'block';
     sliderRow.style.display = 'block';
     tidalRow.style.display = 'none';
     speedLabel.textContent = meta.sliderLabel;
@@ -528,22 +533,22 @@ function updateExplain() {
   switch (curPrincipleKey) {
     case 'hydro':
       html = s === 0
-        ? '<span class="p-hint">👉 슬라이더로 취수량을 조절해보세요!</span><br><br>물이 흐르지 않으면 터빈이 돌지 않아 전기가 만들어지지 않습니다.'
+        ? '물이 흐르지 않으면 터빈이 돌지 않아 전기가 만들어지지 않습니다.'
         : `취수구가 열려 물이 <b>${s < 40 ? '천천히' : s < 75 ? '적당히' : '힘차게'}</b> 흘러들고 있어요.<br><br>흐르는 물이 <b>발전터빈</b>을 돌리고, 터빈과 연결된 <b>발전기</b>가 함께 회전하며 전기를 만듭니다. 만들어진 전기는 <b>변압기</b>를 거쳐 <b>송전철탑</b>으로 보내집니다.`;
       break;
     case 'thermal':
       html = s === 0
-        ? '<span class="p-hint">👉 슬라이더로 증기의 압력을 조절해보세요!</span>'
+        ? '보일러가 꺼져 있어요. 증기가 없으면 터빈이 돌지 않아 전기가 만들어지지 않습니다.'
         : `보일러에서 연료를 태운 열로 물을 끓여 <b>${s < 40 ? '약한' : s < 75 ? '적당한' : '아주 강한'}</b> 증기를 만들고 있어요.<br><br>이 증기가 <b>터빈</b>의 날개를 세게 밀어 회전시키고, 터빈과 연결된 <b>발전기</b>가 함께 돌면서 전류(CURRENT)가 만들어집니다.`;
       break;
     case 'nuclear':
       html = s === 0
-        ? '<span class="p-hint">👉 슬라이더로 원자로 출력을 조절해보세요!</span>'
+        ? '원자로가 꺼져 있어요. 증기가 없으면 터빈이 돌지 않아 전기가 만들어지지 않습니다.'
         : `원자로 속 <b>핵분열 반응</b>에서 나오는 열로 물을 끓여 증기를 만들고 있어요.<br><br>화력발전과 마찬가지로, 이 증기가 <b>터빈</b>과 <b>발전기</b>를 돌려 전기를 만듭니다. 연료를 태우지 않고도 아주 강력한 열을 얻을 수 있는 것이 특징입니다.`;
       break;
     case 'wind':
       html = s === 0
-        ? '<span class="p-hint">👉 슬라이더로 바람의 양을 조절해보세요!</span>'
+        ? '바람이 불지 않으면 날개가 돌지 않아 전기가 만들어지지 않습니다.'
         : `바람이 불어 커다란 <b>날개</b>가 회전하고 있어요.<br><br>날개의 회전은 느리지만 힘이 세서, <b>기어</b>를 거치며 회전 속도를 높인 뒤 <b>발전기</b>를 빠르게 돌려 전기를 만듭니다.`;
       break;
     case 'tidal': {
