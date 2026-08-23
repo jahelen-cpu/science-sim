@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>가정의 전기 에너지 전환 시뮬레이션</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #14202b;
+    min-height: 100vh;
+    font-family: 'Malgun Gothic', 'Segoe UI', Pretendard, sans-serif;
+    color: #eef4f8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 22px 16px 50px;
+  }
+  h1 {
+    font-size: clamp(20px, 2.6vw, 30px);
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 6px;
+    text-shadow: 0 2px 10px rgba(0,0,0,.5);
+  }
+  .sub {
+    font-size: clamp(13px, 1.4vw, 16px);
+    color: #a9c6d8;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .sub strong { color: #ffd166; }
+
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+  .toolbar button {
+    padding: 9px 18px;
+    border: none;
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform .12s, filter .15s;
+  }
+  .toolbar button:active { transform: scale(0.96); }
+  #showAllBtn { background: #2e7d32; color: #fff; }
+  #showAllBtn:hover { filter: brightness(1.12); }
+  #resetBtn { background: #546e7a; color: #fff; }
+  #resetBtn:hover { filter: brightness(1.15); }
+
+  .progress {
+    font-size: 15px;
+    font-weight: 700;
+    color: #ffd166;
+    background: rgba(255,255,255,0.08);
+    padding: 8px 16px;
+    border-radius: 999px;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    justify-content: center;
+    font-size: 13px;
+    color: #c6dbe6;
+    margin-bottom: 18px;
+    background: rgba(255,255,255,0.05);
+    padding: 8px 16px;
+    border-radius: 12px;
+  }
+  .legend span { white-space: nowrap; }
+
+  .stage-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 1300px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0,0,0,.55);
+  }
+  .stage {
+    position: relative;
+    width: 100%;
+    /* aspect ratio locks the coordinate system to the source image (1492x1054) */
+    aspect-ratio: 1492 / 1054;
+    overflow: hidden;
+  }
+  .stage img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  /* ---------- answer badge (compact card, not a long pill) ---------- */
+  .hotspot {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    width: clamp(58px, 6.6vw, 96px);
+    background: rgba(255,255,255,0.97);
+    border: 2px solid #2e7d32;
+    border-radius: 14px;
+    padding: 5px 4px 6px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.35);
+    cursor: pointer;
+    animation: pulse 1.8s infinite;
+    transition: background .2s, border-color .2s, transform .15s;
+  }
+  .hotspot:hover { transform: translate(-50%, -50%) scale(1.07); }
+  .hotspot .label {
+    font-size: clamp(7.5px, 0.78vw, 11px);
+    font-weight: 800;
+    color: #244a29;
+    line-height: 1.1;
+    text-align: center;
+  }
+  .hotspot .arrow {
+    font-size: clamp(9px, 0.85vw, 12px);
+    color: #2e7d32;
+    line-height: 1;
+  }
+  .hotspot .click-btn {
+    display: inline-block;
+    background: #2e7d32;
+    color: #fff;
+    border-radius: 7px;
+    padding: 2px 9px;
+    font-size: clamp(8.5px, 0.85vw, 12px);
+    font-weight: 800;
+    letter-spacing: 0.5px;
+  }
+  .hotspot .answer-icon {
+    font-size: clamp(15px, 1.7vw, 22px);
+    line-height: 1;
+  }
+  .hotspot .answer-text {
+    font-size: clamp(7.5px, 0.8vw, 11px);
+    font-weight: 800;
+    color: #8a5200;
+    text-align: center;
+    line-height: 1.15;
+  }
+  .hotspot.revealed {
+    animation: none;
+    background: #fff6da;
+    border-color: #e0a800;
+  }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 3px 10px rgba(0,0,0,.35), 0 0 0 0 rgba(46,125,50,0.45); }
+    50%      { box-shadow: 0 3px 10px rgba(0,0,0,.35), 0 0 0 7px rgba(46,125,50,0); }
+  }
+
+  /* ---------- appliance "power on" effects ---------- */
+  .fx { position: absolute; transform: translate(-50%, -50%); pointer-events: none; z-index: 3; }
+
+  /* glow: lights, microwave door, stove heat */
+  .fx-glow {
+    border-radius: 50%;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(.6);
+    transition: opacity .35s, transform .35s;
+    background: radial-gradient(circle, var(--fx-c, rgba(255,225,140,0.95)) 0%, rgba(255,180,60,0.4) 45%, rgba(255,180,60,0) 75%);
+    mix-blend-mode: screen;
+  }
+  .fx-glow.active { opacity: 1; transform: translate(-50%, -50%) scale(1); animation: glowPulse 1.4s ease-in-out infinite; }
+  @keyframes glowPulse { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.3); } }
+
+  /* screen: TV */
+  .fx-screen {
+    border-radius: 10px;
+    opacity: 0;
+    transition: opacity .35s;
+    background: radial-gradient(ellipse at center, rgba(170,225,255,.6), rgba(170,225,255,0) 72%);
+    mix-blend-mode: screen;
+  }
+  .fx-screen.active { opacity: 1; animation: flicker 2.2s infinite; }
+  @keyframes flicker { 0%, 18%, 22%, 100% { opacity: 1; } 20% { opacity: .72; } }
+
+  /* spin: fan blades (emoji spinner — guarantees contrast on any background) */
+  .fx-spin {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    opacity: 0;
+    transition: opacity .3s;
+    text-shadow: 0 0 8px rgba(255,255,255,0.95), 0 0 3px rgba(0,0,0,0.25);
+  }
+  .fx-spin.active { opacity: .95; animation: spinFast .5s linear infinite; }
+  @keyframes spinFast { from { transform: translate(-50%,-50%) rotate(0deg); } to { transform: translate(-50%,-50%) rotate(360deg); } }
+
+  /* wind: drifting air lines beside the fan */
+  .fx-wind { font-size: clamp(14px, 1.6vw, 22px); opacity: 0; transition: opacity .3s; }
+  .fx-wind.active { opacity: .95; animation: windDrift 1.3s ease-in-out infinite; }
+  @keyframes windDrift { 0% { transform: translate(-50%,-50%) translateX(0); opacity: 0; } 30% { opacity: .95; } 100% { transform: translate(-50%,-50%) translateX(26px); opacity: 0; } }
+
+  /* steam: iron, rice cooker (emoji — guarantees contrast on any background) */
+  .fx-steam .puff {
+    position: absolute;
+    font-size: clamp(16px, 1.8vw, 26px);
+    line-height: 1;
+    text-shadow: 0 0 6px rgba(255,255,255,0.9), 0 0 3px rgba(0,0,0,0.2);
+    opacity: 0;
+  }
+  .fx-steam.active .puff { animation: steamRise 1.8s ease-in infinite; }
+  .fx-steam .puff:nth-child(1) { left: -10px; animation-delay: 0s; }
+  .fx-steam .puff:nth-child(2) { left: 0px;   animation-delay: .5s; }
+  .fx-steam .puff:nth-child(3) { left: 9px;   animation-delay: 1s; }
+  @keyframes steamRise {
+    0%   { transform: translateY(0) scale(.6);   opacity: 0; }
+    25%  { opacity: .98; }
+    100% { transform: translateY(-34px) scale(1.3); opacity: 0; }
+  }
+
+  /* soundwave: speaker, TV sound */
+  .fx-soundwave .ring {
+    position: absolute; left: 0; top: 0;
+    width: 12px; height: 12px; margin: -6px 0 0 -6px;
+    border: 4px solid rgba(140,215,255,0.95);
+    border-radius: 50%;
+    box-shadow: 0 0 4px rgba(0,0,0,0.25);
+    opacity: 0;
+  }
+  .fx-soundwave.active .ring { animation: waveExpand 1.6s ease-out infinite; }
+  .fx-soundwave .ring:nth-child(2) { animation-delay: .5s; }
+  .fx-soundwave .ring:nth-child(3) { animation-delay: 1s; }
+  @keyframes waveExpand {
+    0%   { width: 12px; height: 12px; margin: -6px 0 0 -6px; opacity: .9; }
+    100% { width: 84px; height: 84px; margin: -42px 0 0 -42px; opacity: 0; }
+  }
+
+  /* mist: air conditioner cool air */
+  .fx-mist .drop {
+    position: absolute;
+    width: clamp(8px, 0.9vw, 13px);
+    height: clamp(18px, 2vw, 28px);
+    border-radius: 50%;
+    background: linear-gradient(to bottom, rgba(140,205,255,.98), rgba(140,205,255,0));
+    box-shadow: 0 0 4px rgba(80,170,255,0.5);
+    opacity: 0;
+  }
+  .fx-mist.active .drop { animation: mistFall 1.5s ease-in infinite; }
+  .fx-mist .drop:nth-child(1) { left: -22px; animation-delay: 0s; }
+  .fx-mist .drop:nth-child(2) { left: 0px;   animation-delay: .4s; }
+  .fx-mist .drop:nth-child(3) { left: 22px;  animation-delay: .8s; }
+  @keyframes mistFall {
+    0%   { transform: translateY(0);   opacity: 0; }
+    18%  { opacity: .9; }
+    100% { transform: translateY(46px); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<h1>🏠 가정에서 사용하는 전기 기구의 에너지 전환</h1>
+<p class="sub">가전제품 옆의 <strong>[ 클릭 ]</strong> 박스를 누르면 에너지가 무엇으로 바뀌는지, 기구가 실제로 작동하는 모습까지 볼 수 있어요!</p>
+
+<div class="toolbar">
+  <button id="showAllBtn">✅ 전체 정답 보기</button>
+  <button id="resetBtn">🔄 다시 가리기</button>
+  <div class="progress" id="progress">확인한 개수: 0 / 10</div>
+</div>
+
+<div class="legend">
+  <span>🔥 열에너지</span>
+  <span>💨 운동에너지</span>
+  <span>💡 빛에너지</span>
+  <span>🔊 소리에너지</span>
+</div>
+
+<div class="stage-wrap">
+  <div class="stage" id="stage">
+    <img src="가정의 전기에너지 사용.png" alt="가정의 전기에너지 사용 장면">
+    <!-- hotspots & effects injected by JS -->
+  </div>
+</div>
+
+<script>
+  // 좌표는 원본 이미지(1492 x 1054) 기준 픽셀 좌표입니다.
+  const IMG_W = 1492, IMG_H = 1054;
+
+  const items = [
+    {
+      id: 1, name: '전기 다리미', x: 280, y: 388, energy: '열에너지', icon: '🔥',
+      effects: [{ type: 'steam', x: 330, y: 455 }]
+    },
+    {
+      id: 2, name: '선풍기', x: 678, y: 808, energy: '운동에너지', icon: '💨',
+      effects: [
+        { type: 'spin', x: 565, y: 800, size: 78 },
+        { type: 'wind', x: 618, y: 800, glyph: '💨' }
+      ]
+    },
+    {
+      id: 3, name: '전등', x: 655, y: 200, energy: '빛에너지', icon: '💡',
+      effects: [
+        { type: 'glow', x: 458, y: 175, size: 62 },
+        { type: 'glow', x: 547, y: 175, size: 62 },
+        { type: 'glow', x: 637, y: 135, size: 62 }
+      ]
+    },
+    {
+      id: 4, name: '스탠드 조명', x: 878, y: 375, energy: '빛에너지', icon: '💡',
+      effects: [{ type: 'glow', x: 897, y: 460, size: 84 }]
+    },
+    {
+      id: 5, name: 'TV', x: 598, y: 402, energy: '빛에너지 + 소리에너지', icon: '💡🔊',
+      effects: [
+        { type: 'screen', x: 645, y: 490, w: 240, h: 190 },
+        { type: 'soundwave', x: 838, y: 555 }
+      ]
+    },
+    {
+      id: 6, name: '오디오(스피커)', x: 810, y: 523, energy: '소리에너지', icon: '🔊',
+      effects: [{ type: 'soundwave', x: 825, y: 565 }]
+    },
+    {
+      id: 7, name: '에어컨', x: 1183, y: 176, energy: '열에너지', icon: '🔥',
+      effects: [{ type: 'mist', x: 1035, y: 220 }]
+    },
+    {
+      id: 8, name: '전기밥솥', x: 1183, y: 497, energy: '열에너지', icon: '🔥',
+      effects: [{ type: 'steam', x: 1200, y: 560 }]
+    },
+    {
+      id: 9, name: '전기레인지(하이라이트)', x: 1287, y: 702, energy: '열에너지', icon: '🔥',
+      effects: [
+        { type: 'glow', x: 1195, y: 735, size: 70, color: 'rgba(255,120,40,0.9)' },
+        { type: 'glow', x: 1300, y: 785, size: 70, color: 'rgba(255,120,40,0.9)' }
+      ]
+    },
+    {
+      id: 10, name: '전자레인지', x: 1263, y: 952, energy: '열에너지', icon: '🔥',
+      effects: [{ type: 'glow', x: 1265, y: 905, size: 60, color: 'rgba(255,240,170,0.95)' }]
+    },
+  ];
+
+  const stage = document.getElementById('stage');
+  const progressEl = document.getElementById('progress');
+  const pct = (x, y) => ({ left: (x / IMG_W * 100) + '%', top: (y / IMG_H * 100) + '%' });
+
+  function buildFx(item) {
+    return item.effects.map(fx => {
+      const el = document.createElement('div');
+      el.className = 'fx fx-' + fx.type;
+      el.dataset.id = item.id;
+      const p = pct(fx.x, fx.y);
+      el.style.left = p.left;
+      el.style.top = p.top;
+
+      if (fx.type === 'glow') {
+        const sz = (fx.size || 70) / IMG_W * 100 + '%';
+        el.style.width = sz;
+        el.style.aspectRatio = '1 / 1';
+        if (fx.color) el.style.setProperty('--fx-c', fx.color);
+      } else if (fx.type === 'screen') {
+        el.style.width = (fx.w / IMG_W * 100) + '%';
+        el.style.height = (fx.h / IMG_H * 100) + '%';
+      } else if (fx.type === 'spin') {
+        el.textContent = '🌀';
+        const vw = (fx.size || 70) / IMG_W * 100;
+        el.style.fontSize = `clamp(22px, ${vw}vw, 80px)`;
+      } else if (fx.type === 'wind') {
+        el.textContent = fx.glyph || '💨';
+      } else if (fx.type === 'steam') {
+        el.innerHTML = '<span class="puff">♨️</span><span class="puff">♨️</span><span class="puff">♨️</span>';
+      } else if (fx.type === 'soundwave') {
+        el.innerHTML = '<span class="ring"></span><span class="ring"></span><span class="ring"></span>';
+      } else if (fx.type === 'mist') {
+        el.innerHTML = '<span class="drop"></span><span class="drop"></span><span class="drop"></span>';
+      }
+      stage.appendChild(el);
+      return el;
+    });
+  }
+
+  function updateProgress() {
+    const revealedCount = document.querySelectorAll('.hotspot.revealed').length;
+    progressEl.textContent = `확인한 개수: ${revealedCount} / ${items.length}`;
+  }
+
+  function setActive(item, active) {
+    item._hotspot.classList.toggle('revealed', active);
+    item._fx.forEach(el => el.classList.toggle('active', active));
+    renderHotspot(item);
+  }
+
+  function renderHotspot(item) {
+    const el = item._hotspot;
+    if (el.classList.contains('revealed')) {
+      el.innerHTML =
+        `<span class="label">전기에너지</span>` +
+        `<span class="arrow">→</span>` +
+        `<span class="answer-icon">${item.icon}</span>` +
+        `<span class="answer-text">${item.energy}</span>`;
+    } else {
+      el.innerHTML =
+        `<span class="label">전기에너지</span>` +
+        `<span class="arrow">→</span>` +
+        `<span class="click-btn">클릭</span>`;
+    }
+  }
+
+  items.forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'hotspot';
+    const p = pct(item.x, item.y);
+    el.style.left = p.left;
+    el.style.top = p.top;
+    el.dataset.id = item.id;
+    item._hotspot = el;
+    item._fx = buildFx(item);
+    renderHotspot(item);
+
+    el.addEventListener('click', () => {
+      setActive(item, !el.classList.contains('revealed'));
+      updateProgress();
+    });
+
+    stage.appendChild(el);
+  });
+
+  document.getElementById('showAllBtn').addEventListener('click', () => {
+    items.forEach(item => setActive(item, true));
+    updateProgress();
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    items.forEach(item => setActive(item, false));
+    updateProgress();
+  });
+</script>
+
+</body>
+</html>
