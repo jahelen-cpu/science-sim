@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>자동차의 에너지 여행 - 전환과 보존</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #1a2b3c;
+  min-height: 100vh;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 10px 16px 20px; color: #eee;
+}
+h1 { font-size: 41px; font-weight: 700; margin-bottom: 2px; text-shadow: 0 2px 8px rgba(0,0,0,.5); }
+.guide { font-size: 26px; font-weight: 600; color: #9fc4dd; margin-bottom: 4px; text-align: center; max-width: 940px; }
+.subnote { font-size: 20px; color: #64809a; margin-bottom: 8px; }
+
+.vehicle-toggle { display: flex; gap: 14px; margin-bottom: 10px; }
+.veh-btn {
+  padding: 8px 26px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.06); color: #cfe4f2; font-size: 29px; font-weight: 700;
+  cursor: pointer; transition: all .15s;
+}
+.veh-btn:hover:not(:disabled) { border-color: rgba(255,255,255,0.35); }
+.veh-btn.active[data-veh="gas"] { background: rgba(255,112,67,0.22); border-color:#FF7043; color:#fff; box-shadow:0 0 16px rgba(255,112,67,.5); }
+.veh-btn.active[data-veh="ev"]  { background: rgba(66,165,245,0.22); border-color:#42A5F5; color:#fff; box-shadow:0 0 16px rgba(66,165,245,.5); }
+.veh-btn:disabled { opacity:.4; cursor: not-allowed; }
+
+.app-layout { display: flex; gap: 18px; align-items: flex-start; }
+#canvas { display:block; max-width:100%; border-radius: 14px; box-shadow: 0 6px 32px rgba(0,0,0,.6); background:#0f1e2c; }
+
+.sidebar { width: 330px; min-width: 330px; display:grid; grid-template-columns: 1fr 1fr; gap:10px; align-content:start; }
+.e-placeholder { grid-column: 1 / -1; font-size: 17px; color:#5c7a91; text-align:center; padding: 2px; }
+.e-card {
+  border: 2px solid var(--c); border-radius: 12px; padding: 0 10px; text-align:center; cursor:pointer;
+  background: rgba(255,255,255,0.03); opacity:0; transform: scale(.7); pointer-events:none;
+  max-height: 0; overflow: hidden; border-width: 0;
+  transition: opacity .25s, transform .25s, background .2s, max-height .25s, padding .25s, border-width .2s;
+}
+.e-card.appear { opacity:1; transform: scale(1); pointer-events:auto; max-height: 160px; padding: 10px; border-width: 2px; }
+.e-card:hover.appear { background: rgba(255,255,255,0.09); }
+.e-src { font-size: 22px; font-weight: 700; color:#dce9f3; }
+.e-arrow { font-size: 24px; color:#7fa3bd; line-height:1.3; }
+.e-target { font-size: 24px; font-weight: 800; color:#dce9f3; }
+.e-blank {
+  display:inline-block; min-width: 1.6em; padding: 0 4px;
+  border-bottom: 3px dashed #7fa3bd; color: transparent;
+}
+.e-pct { font-size: 22px; font-weight: 800; margin-top: 4px; min-height: 1em; color: var(--c); }
+.e-card.revealed .e-blank { border-bottom-style: solid; color: var(--c); }
+.e-card.revealed[data-cat="heat"]    { background: rgba(255,87,34,.2); }
+.e-card.revealed[data-cat="kinetic"] { background: rgba(76,175,80,.2); }
+.e-card.revealed[data-cat="light"]   { background: rgba(255,235,59,.2); }
+.e-card.revealed[data-cat="sound"]   { background: rgba(171,71,188,.2); }
+
+.controls { display:flex; gap:10px; align-items:center; justify-content:center; margin-top:10px; flex-wrap:wrap; max-width: 940px; }
+.controls button { padding: 10px 22px; border: none; border-radius: 10px; font-size: 26px; font-weight: 700; cursor: pointer; transition: background .15s, transform .1s, opacity .15s; color:#fff; }
+.controls button:active:not(:disabled) { transform: scale(0.96); }
+.controls button:disabled { opacity:.35; cursor: not-allowed; }
+#chargeBtn { background: #FB8C00; }
+#chargeBtn:hover:not(:disabled) { background: #EF6C00; }
+#driveBtn { background: #2196F3; }
+#driveBtn:hover:not(:disabled) { background: #1976D2; }
+#driveBtn.is-driving { background: #FF9800; }
+#driveBtn.is-driving:hover:not(:disabled) { background: #F57C00; }
+#lightBtn { background: #FBC02D; color:#3a2f00; }
+#lightBtn:hover:not(:disabled) { background: #F9A825; }
+#lightBtn.is-on { background: #FFEE58; box-shadow: 0 0 14px rgba(255,238,88,.8); }
+#hornBtn { background: #AB47BC; }
+#hornBtn:hover:not(:disabled) { background: #8E24AA; }
+#resetBtn { background: #546E7A; }
+#resetBtn:hover { background: #37474F; }
+#muteBtn { background: #455A64; font-size:27px; padding: 10px 18px; }
+
+.info-panel {
+  width: 940px; max-width: 94vw; margin-top: 10px;
+  background: rgba(255,255,255,0.07); border-radius: 14px; padding: 12px 18px;
+  font-size: 23px; line-height:1.45; color:#cfe4f2; min-height: 20px;
+}
+.info-panel b { color:#FFD54F; }
+
+.reflect-box {
+  width: 940px; max-width: 94vw; margin-top: 8px;
+  background: rgba(255, 235, 59, 0.08); border: 1px solid rgba(255,235,59,.3);
+  border-radius: 12px; padding: 10px 16px; font-size: 21px; line-height: 1.45; color: #f0e6c0;
+}
+.reflect-box b { color: #FFEB3B; }
+</style>
+</head>
+<body>
+<h1>🚗⚡ 자동차의 에너지 여행</h1>
+<p class="guide">먼저 충전(주유)을 마치고, 운행을 시작해보세요. 헤드라이트·경적 버튼도 눌러보고, 네모 빈칸을 클릭해 어떤 에너지로 바뀌는지 확인하세요!</p>
+<p class="subnote">※ 실제 자동차의 평균적인 에너지 전환 비율을 단순화하여 표현한 시뮬레이션입니다 (근사치)</p>
+
+<div class="vehicle-toggle">
+  <button class="veh-btn active" id="btnGas" data-veh="gas">🚗🔥 가솔린차</button>
+  <button class="veh-btn" id="btnEv" data-veh="ev">🔋⚡ 전기차</button>
+</div>
+
+<div class="app-layout">
+  <canvas id="canvas" width="670" height="300"></canvas>
+  <div class="sidebar">
+    <div class="e-placeholder" id="placeholder">에너지 카드가 여기 나타나요</div>
+    <div class="e-card" id="cardKinetic" data-cat="kinetic" style="--c:#4CAF50">
+      <div class="e-src"></div>
+      <div class="e-arrow">↓</div>
+      <div class="e-target"><span class="e-blank"></span>에너지</div>
+      <div class="e-pct"></div>
+    </div>
+    <div class="e-card" id="cardHeat" data-cat="heat" style="--c:#FF5722">
+      <div class="e-src"></div>
+      <div class="e-arrow">↓</div>
+      <div class="e-target"><span class="e-blank"></span>에너지</div>
+      <div class="e-pct"></div>
+    </div>
+    <div class="e-card" id="cardLight" data-cat="light" style="--c:#FFEB3B">
+      <div class="e-src"></div>
+      <div class="e-arrow">↓</div>
+      <div class="e-target"><span class="e-blank"></span>에너지</div>
+      <div class="e-pct"></div>
+    </div>
+    <div class="e-card" id="cardSound" data-cat="sound" style="--c:#AB47BC">
+      <div class="e-src"></div>
+      <div class="e-arrow">↓</div>
+      <div class="e-target"><span class="e-blank"></span>에너지</div>
+      <div class="e-pct"></div>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <button id="chargeBtn">⛽ 주유하기</button>
+  <button id="driveBtn" disabled>▶ 운행 시작</button>
+  <button id="lightBtn" disabled>💡 헤드라이트</button>
+  <button id="hornBtn" disabled>📯 경적</button>
+  <button id="resetBtn">↺ 처음으로</button>
+  <button id="muteBtn" title="소리 켜기/끄기">🔊</button>
+</div>
+
+<div class="info-panel" id="infoPanel">
+  빈칸 카드를 클릭해 보세요. 어떤 에너지로 바뀌었는지 이름이 나타나요.
+</div>
+
+<div class="reflect-box" id="reflectBox"></div>
+
+<script>
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r){
+    r=Math.min(r||0,w/2,h/2);
+    this.moveTo(x+r,y);      this.lineTo(x+w-r,y);    this.quadraticCurveTo(x+w,y,   x+w,y+r);
+    this.lineTo(x+w,y+h-r); this.quadraticCurveTo(x+w,y+h, x+w-r,y+h);
+    this.lineTo(x+r,y+h);   this.quadraticCurveTo(x,y+h,   x,y+h-r);
+    this.lineTo(x,y+r);     this.quadraticCurveTo(x,y,     x+r,y);
+    this.closePath();
+  };
+}
+
+const cvs = document.getElementById('canvas');
+const ctx = cvs.getContext('2d');
+const W = cvs.width, H = cvs.height;
+const roadY = 224;
+const stationX = 65;
+const parkX = 180;
+const roadRightBound = W - 60;
+
+const VEHICLES = {
+  gas: {
+    chargeLabel: '⛽ 주유하기',
+    chargingLabel: '⛽ 주유 중...',
+    stationName: 'GAS',
+    srcLabel: '화학 에너지',
+    photo: '가솔린자동차_투명.png',
+    spriteScale: 1.0,
+    anchor: { hx: 0.90, hy: 0.62, hazeX: 0.35, hazeY: 0.35 },
+    pct: { heat: 65, kinetic: 25, sound: 6, light: 4 },
+    reflect: '가솔린 자동차는 넣은 <b>화학 에너지</b>의 약 <b>65%</b>가 엔진 열로 사라지고, 실제로 바퀴를 굴리는 데 쓰이는 건 겨우 약 <b>25%</b>뿐이에요.',
+    heatRate: 1/5, heatCap: 1.0
+  },
+  ev: {
+    chargeLabel: '🔌 충전하기',
+    chargingLabel: '🔌 충전 중...',
+    stationName: 'EV',
+    srcLabel: '전기 에너지',
+    photo: '전기자동차_투명.png',
+    spriteScale: 1.0,
+    anchor: { hx: 0.90, hy: 0.55, hazeX: 0.35, hazeY: 0.30 },
+    pct: { heat: 10, kinetic: 85, sound: 2, light: 3 },
+    reflect: '전기 자동차는 <b>전기 에너지</b>의 약 <b>85%</b>가 바로 운동 에너지로 바뀌어요. 열로 사라지는 건 약 <b>10%</b>뿐이라 가솔린차보다 훨씬 효율적이에요.',
+    heatRate: 1/16, heatCap: 0.4
+  }
+};
+const WORD = { heat:'열', kinetic:'운동', light:'빛', sound:'소리' };
+const BOX_ICON = { heat:'열에너지', sound:'소리에너지', light:'빛에너지', kinetic:'운동에너지' };
+const EXPLAIN = {
+  heat: '엔진(모터)이나 부품끼리 마찰할 때 항상 함께 생기는 열이에요. 대부분 공기 중으로 그냥 흩어져 다시 쓸 수 없는 <b>폐열</b>이 돼요. 운행 시간이 길어질수록 더 많이 쌓여요!',
+  sound: '경적, 엔진(모터)의 진동이 만드는 소음이에요. 공기를 흔들다가 사라지는, 다시 쓸 수 없는 에너지예요.',
+  light: '전조등을 밝히는 데 쓰인 에너지예요. 양은 적지만 우리에게 필요해서 쓰는 유용한 에너지예요.',
+  kinetic: '자동차 바퀴를 굴려 실제로 <b>이동</b>하는 데 쓰인 에너지예요. 우리가 원하는 목적에 맞게 쓰인 유용한 에너지죠.'
+};
+
+// ---------- sprite loading (pre-processed transparent PNGs) ----------
+const sprites = {};
+Object.keys(VEHICLES).forEach(key => {
+  const img = new Image();
+  img.onload = () => { sprites[key] = img; };
+  img.src = VEHICLES[key].photo;
+});
+
+let vehicle = 'gas';
+let muted = false;
+let unlocked = { gas:false, ev:false };
+let charging = false, chargeProgress = 0, charged = false;
+let driving = false;
+let carX = parkX;
+let driveElapsed = 0;
+let headlightOn = false;
+let hazeParticles = [];
+let soundRings = [];
+let hazeAcc = 0;
+let lastT = null;
+
+function carY() { return roadY - 46; }
+function spriteBox(x) {
+  const sp = sprites[vehicle];
+  const targetW = 150 * VEHICLES[vehicle].spriteScale;
+  const h = sp ? targetW * (sp.naturalHeight/sp.naturalWidth) : 70;
+  return { x: x - targetW/2, y: roadY - h + 6, w: targetW, h };
+}
+
+// ---------- drawing ----------
+function drawRoad() {
+  const grad = ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0, '#12283b');
+  grad.addColorStop(1, '#0a1622');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,W,H);
+
+  ctx.fillStyle = '#26333d';
+  ctx.fillRect(0, roadY, W, H-roadY);
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([18,16]);
+  ctx.beginPath();
+  ctx.moveTo(0, roadY+30); ctx.lineTo(W, roadY+30);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawStation() {
+  const v = VEHICLES[vehicle];
+  const x = stationX, y = roadY;
+  ctx.fillStyle = vehicle === 'gas' ? '#78909C' : '#ECEFF1';
+  ctx.beginPath(); ctx.roundRect(x-24, y-95, 48, 95, 6); ctx.fill();
+  ctx.fillStyle = vehicle === 'gas' ? '#FFB300' : '#26A69A';
+  ctx.beginPath(); ctx.roundRect(x-18, y-85, 36, 24, 4); ctx.fill();
+  ctx.fillStyle = '#263238';
+  ctx.font = 'bold 14px Arial'; ctx.textAlign = 'center';
+  ctx.fillText(v.stationName, x, y-68);
+  ctx.fillStyle = '#37474F';
+  ctx.beginPath(); ctx.roundRect(x-14, y-55, 28, 30, 3); ctx.fill();
+  ctx.fillStyle = '#455A64';
+  ctx.beginPath(); ctx.roundRect(x-30, y-6, 60, 6, 2); ctx.fill();
+}
+
+function drawChargeCable(t, box) {
+  if (!charging) return;
+  const sx = stationX+18, sy = roadY-40;
+  const ex = box.x+10, ey = box.y+box.h*0.6;
+  const midx = (sx+ex)/2, midy = Math.min(sy,ey)+30;
+  ctx.strokeStyle = vehicle==='gas' ? '#FFB300' : '#26A69A';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(sx,sy); ctx.quadraticCurveTo(midx,midy,ex,ey);
+  ctx.stroke();
+
+  for (let i=0;i<4;i++) {
+    const f = ((t*0.8 + i/4) % 1);
+    const px = (1-f)*(1-f)*sx + 2*(1-f)*f*midx + f*f*ex;
+    const py = (1-f)*(1-f)*sy + 2*(1-f)*f*midy + f*f*ey;
+    ctx.fillStyle = vehicle==='gas' ? '#FFD54F' : '#80CBC4';
+    ctx.beginPath(); ctx.arc(px,py,3.5,0,Math.PI*2); ctx.fill();
+  }
+
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.beginPath(); ctx.roundRect(box.x+box.w/2-42, box.y-30, 84, 16, 7); ctx.fill();
+  ctx.fillStyle = vehicle==='gas' ? '#FFB300' : '#26A69A';
+  ctx.beginPath(); ctx.roundRect(box.x+box.w/2-39, box.y-28, 78*(chargeProgress/100), 12, 6); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 12px Arial'; ctx.textAlign='center';
+  ctx.fillText(Math.floor(chargeProgress)+'%', box.x+box.w/2, box.y-18);
+}
+
+function drawCar(x) {
+  const box = spriteBox(x);
+  const v = VEHICLES[vehicle];
+  const hx = box.x + box.w*v.anchor.hx, hy = box.y + box.h*v.anchor.hy;
+
+  if (headlightOn) {
+    const beam = ctx.createRadialGradient(hx,hy,2, hx+95,hy,115);
+    beam.addColorStop(0, 'rgba(255,244,180,.55)');
+    beam.addColorStop(1, 'rgba(255,244,180,0)');
+    ctx.fillStyle = beam;
+    ctx.beginPath();
+    ctx.moveTo(hx,hy-8); ctx.lineTo(hx+125,hy-42); ctx.lineTo(hx+125,hy+42); ctx.lineTo(hx,hy+8);
+    ctx.closePath(); ctx.fill();
+  }
+
+  const sp = sprites[vehicle];
+  if (sp) {
+    ctx.drawImage(sp, box.x, box.y, box.w, box.h);
+  } else {
+    ctx.fillStyle = v.spriteScale ? '#888' : '#888';
+    ctx.beginPath(); ctx.roundRect(box.x, box.y, box.w, box.h, 10); ctx.fill();
+  }
+
+  ctx.fillStyle = headlightOn ? '#FFF9C4' : 'rgba(255,245,157,0.85)';
+  ctx.beginPath(); ctx.arc(hx,hy,4,0,Math.PI*2); ctx.fill();
+
+  return box;
+}
+
+function spawnHaze(box) {
+  const v = VEHICLES[vehicle];
+  const intensity = Math.min(driveElapsed * v.heatRate, v.heatCap);
+  if (intensity <= 0.01) return;
+  hazeAcc += intensity * 6;
+  while (hazeAcc >= 1) {
+    hazeParticles.push({
+      x: box.x + box.w*v.anchor.hazeX + (Math.random()*60-30),
+      y: box.y + box.h*v.anchor.hazeY,
+      t:0, dur: 1.3+Math.random()*0.6,
+      wob: Math.random()*10, amp: 5+Math.random()*5, len: 16+Math.random()*12,
+      heat: intensity
+    });
+    hazeAcc -= 1;
+  }
+}
+function updateHaze(dt) { hazeParticles.forEach(p=>p.t+=dt); hazeParticles = hazeParticles.filter(p=>p.t<p.dur); }
+function drawHaze() {
+  hazeParticles.forEach(p => {
+    const f = p.t/p.dur;
+    const riseY = p.y - f*70;
+    const alpha = Math.sin(Math.PI*f)*0.4;
+    if (alpha<=0.01) return;
+    const r = 255, g = Math.round(150 - 70*p.heat), b = Math.round(120 - 70*p.heat);
+    ctx.strokeStyle = `rgba(${r},${Math.max(g,75)},${Math.max(b,45)},${alpha})`;
+    ctx.lineWidth = 1.8 + p.heat*1.0;
+    ctx.beginPath();
+    const steps=10;
+    for (let i=0;i<=steps;i++) {
+      const yy = riseY - (i/steps)*p.len;
+      const xx = p.x + Math.sin(i*0.9+p.t*7+p.wob)*p.amp*(i/steps);
+      if (i===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy);
+    }
+    ctx.stroke();
+  });
+}
+
+function drawSoundRings() {
+  soundRings.forEach(r => {
+    const f = r.t/r.dur;
+    ctx.strokeStyle = `rgba(171,71,188,${(1-f)*0.8})`;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(r.x, r.y, f*70, 0, Math.PI*2); ctx.stroke();
+  });
+}
+function updateSoundRings(dt) { soundRings.forEach(r=>r.t+=dt); soundRings = soundRings.filter(r=>r.t<r.dur); }
+
+// ---------- energy cards ----------
+function showCard(cat) { document.getElementById('card'+cap(cat)).classList.add('appear'); }
+function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+function layoutCards() {
+  const label = VEHICLES[vehicle].srcLabel;
+  document.querySelectorAll('.e-src').forEach(el => el.textContent = label);
+}
+
+document.querySelectorAll('.e-card').forEach(card => {
+  card.addEventListener('click', () => {
+    if (!card.classList.contains('appear')) return;
+    const cat = card.dataset.cat;
+    const isOpen = card.classList.toggle('revealed');
+    if (isOpen) {
+      card.querySelector('.e-blank').textContent = WORD[cat];
+      card.querySelector('.e-pct').textContent = VEHICLES[vehicle].pct[cat] + '%';
+      document.getElementById('infoPanel').innerHTML = `<b>${BOX_ICON[cat]}</b> — ${EXPLAIN[cat]}`;
+    }
+  });
+});
+
+// ---------- audio ----------
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function beep(freq, start, dur, vol, type) {
+  const ac = ensureAudio();
+  const osc = ac.createOscillator();
+  const gain = ac.createGain();
+  osc.type = type || 'sawtooth';
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0, ac.currentTime+start);
+  gain.gain.linearRampToValueAtTime(vol, ac.currentTime+start+0.02);
+  gain.gain.setValueAtTime(vol, ac.currentTime+start+dur-0.04);
+  gain.gain.linearRampToValueAtTime(0, ac.currentTime+start+dur);
+  osc.connect(gain); gain.connect(ac.destination);
+  osc.start(ac.currentTime+start); osc.stop(ac.currentTime+start+dur+0.02);
+}
+function playHonk() { if (muted) return; beep(440,0,0.18,0.18); beep(370,0.22,0.18,0.18); }
+function playChime() { if (muted) return; beep(660,0,0.14,0.13,'sine'); beep(880,0.15,0.2,0.13,'sine'); }
+
+// ---------- controls ----------
+const chargeBtn = document.getElementById('chargeBtn');
+const driveBtn = document.getElementById('driveBtn');
+const lightBtn = document.getElementById('lightBtn');
+const hornBtn = document.getElementById('hornBtn');
+
+function updateReflect() {
+  document.getElementById('reflectBox').innerHTML =
+    VEHICLES[vehicle].reflect + ' 에너지는 절대 없어지지 않지만(<b>에너지보존법칙</b>), 한 번 폐열로 흩어지면 다시 쓸 수 없어요. 그래서 에너지를 <b>절약</b>해야 해요!';
+}
+
+function setVehicle(v) {
+  vehicle = v;
+  document.getElementById('btnGas').classList.toggle('active', v==='gas');
+  document.getElementById('btnEv').classList.toggle('active', v==='ev');
+  updateReflect();
+  layoutCards();
+  resetState();
+}
+document.getElementById('btnGas').addEventListener('click', () => setVehicle('gas'));
+document.getElementById('btnEv').addEventListener('click', () => setVehicle('ev'));
+
+chargeBtn.addEventListener('click', () => {
+  if (charging) return;
+  charging = true; chargeProgress = 0;
+  chargeBtn.disabled = true;
+  chargeBtn.textContent = VEHICLES[vehicle].chargingLabel;
+});
+
+driveBtn.addEventListener('click', () => {
+  if (!charged) return;
+  driving = !driving;
+  if (driving) { driveBtn.textContent = '⏸ 운행 정지'; driveBtn.classList.add('is-driving'); showCard('kinetic'); showCard('heat'); }
+  else { driveBtn.textContent = '▶ 운행 시작'; driveBtn.classList.remove('is-driving'); }
+});
+
+lightBtn.addEventListener('click', () => {
+  if (!charged) return;
+  headlightOn = !headlightOn;
+  lightBtn.classList.toggle('is-on', headlightOn);
+  if (headlightOn) showCard('light');
+});
+
+hornBtn.addEventListener('click', () => {
+  if (!charged) return;
+  const box = spriteBox(carX);
+  soundRings.push({ x: box.x+box.w*0.85, y: box.y+box.h*0.6, t:0, dur:0.7 });
+  playHonk();
+  showCard('sound');
+});
+
+document.getElementById('muteBtn').addEventListener('click', (e) => {
+  muted = !muted;
+  e.target.textContent = muted ? '🔇' : '🔊';
+});
+
+function resetState() {
+  charging = false;
+  charged = unlocked[vehicle];
+  chargeProgress = charged ? 100 : 0;
+  driving = false; carX = parkX; driveElapsed = 0;
+  headlightOn = false; hazeParticles = []; soundRings = []; hazeAcc = 0;
+  chargeBtn.disabled = false; chargeBtn.textContent = VEHICLES[vehicle].chargeLabel;
+  driveBtn.disabled = !charged; driveBtn.textContent = '▶ 운행 시작'; driveBtn.classList.remove('is-driving');
+  lightBtn.disabled = !charged; lightBtn.classList.remove('is-on');
+  hornBtn.disabled = !charged;
+  document.querySelectorAll('.e-card').forEach(c => c.classList.remove('appear','revealed'));
+  document.getElementById('infoPanel').innerHTML = '빈칸 카드를 클릭해 보세요. 어떤 에너지로 바뀌었는지 이름이 나타나요.';
+}
+document.getElementById('resetBtn').addEventListener('click', resetState);
+
+// ---------- main loop ----------
+function loop(ts) {
+  if (lastT === null) lastT = ts;
+  const dt = Math.min((ts-lastT)/1000, 0.05);
+  lastT = ts;
+
+  if (charging) {
+    chargeProgress += dt * 44;
+    if (chargeProgress >= 100) {
+      chargeProgress = 100; charging = false; charged = true; unlocked[vehicle] = true;
+      chargeBtn.disabled = false; chargeBtn.textContent = VEHICLES[vehicle].chargeLabel;
+      driveBtn.disabled = false; lightBtn.disabled = false; hornBtn.disabled = false;
+      playChime();
+    }
+  }
+
+  if (driving) {
+    const speed = 95;
+    carX += speed*dt;
+    driveElapsed += dt;
+    if (carX > roadRightBound) carX = parkX;
+  }
+
+  updateHaze(dt);
+  updateSoundRings(dt);
+
+  ctx.clearRect(0,0,W,H);
+  drawRoad();
+  drawStation();
+  const box = drawCar(carX);
+  drawChargeCable(ts/1000, box);
+  if (driving) spawnHaze(box);
+  drawHaze();
+  drawSoundRings();
+
+  requestAnimationFrame(loop);
+}
+
+layoutCards();
+updateReflect();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
