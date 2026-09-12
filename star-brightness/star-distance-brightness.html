@@ -33,7 +33,7 @@ h1 { font-size: 38px; font-weight: 700; margin-bottom: 6px; text-shadow: 0 2px 1
 .guide { font-size: 21px; font-weight: 600; color: #a9c6e8; margin-bottom: 4px; text-align: center; max-width: 900px; line-height: 1.5; }
 .subnote { font-size: 15px; color: #5f7797; margin-bottom: 18px; text-align: center; max-width: 800px; }
 
-.stage-wrap { position: relative; width: 100%; max-width: 1080px; }
+.stage-wrap { position: relative; width: 100%; max-width: 1080px; margin-top: 22px; }
 .formula-badge {
   position: absolute; top: 14px; right: 14px;
   background: #fffdf5; color: #3a2f00; border-radius: 10px;
@@ -81,16 +81,6 @@ input[type=range] { flex: 1; accent-color: #FFD54F; height: 7px; cursor: pointer
 <p class="guide">별빛은 별을 중심으로 사방(구 형태)으로 고르게 퍼져나가요. 우리 눈은 그 넓은 구 표면 중 아주 작은 한 조각만 바라보는 셈이죠. 거리가 멀어질수록 같은 조각에 닿는 빛의 양이 줄어들어, 별은 점점 더 어둡게 보여요.</p>
 <p class="subnote">※ 별빛이 3차원 구 형태로 퍼지는 모습을 2차원 단면으로 단순화하여 표현한 시뮬레이션입니다.</p>
 
-<div class="stage-wrap">
-  <div class="legend">
-    <div><span class="dot" style="background:#ffe082;"></span>별빛이 퍼지는 구 (단면)</div>
-    <div><span class="dot" style="background:#FFD54F;"></span>우리가 보는 부분</div>
-    <div><span class="dot" style="background:#8a99ad;"></span>다른 방향의 관측 지점</div>
-  </div>
-  <div class="formula-badge">별의 밝기 ∝ 1 / r²</div>
-  <canvas id="mainCanvas" width="1000" height="900"></canvas>
-</div>
-
 <div class="controls">
   <div class="slider-row">
     <span>가까이</span>
@@ -113,6 +103,16 @@ input[type=range] { flex: 1; accent-color: #FFD54F; height: 7px; cursor: pointer
     <div class="label">별의 밝기</div>
     <div class="value" id="statBright">1배</div>
   </div>
+</div>
+
+<div class="stage-wrap">
+  <div class="legend">
+    <div><span class="dot" style="background:#ffe082;"></span>별빛이 퍼지는 구 (단면)</div>
+    <div><span class="dot" style="background:#FFD54F;"></span>우리가 보는 부분</div>
+    <div><span class="dot" style="background:#8a99ad;"></span>다른 방향의 관측 지점</div>
+  </div>
+  <div class="formula-badge">별의 밝기 ∝ 1 / r²</div>
+  <canvas id="mainCanvas" width="1000" height="900"></canvas>
 </div>
 
 <script>
