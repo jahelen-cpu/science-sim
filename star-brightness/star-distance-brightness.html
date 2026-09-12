@@ -182,7 +182,6 @@ function draw(){
   }
   drawPatch(currentR, true);
   drawStar();
-  drawObserver(currentR);
 }
 
 // 별빛이 사방으로 퍼져나가는 것을 표현하는 방사선 - 별에서 멀어질수록(밝기가 줄수록) 옅어짐
@@ -227,12 +226,6 @@ function drawOtherDirectionPatches(r){
     ctx.stroke();
 
     drawGlowPatch(cx, cy, hs, r, pb, false);
-
-    ctx.font = `${16 + 8 * pb}px Segoe UI`;
-    ctx.textAlign = 'center';
-    ctx.globalAlpha = 0.55 + 0.45 * pb;
-    ctx.fillText('👁️', cx, cy - hs - 10);
-    ctx.globalAlpha = 1;
   });
   ctx.restore();
 }
@@ -373,34 +366,6 @@ function drawStar(){
   ctx.beginPath();
   ctx.arc(STAR.x, STAR.y, 12, 0, Math.PI * 2);
   ctx.fill();
-  ctx.restore();
-}
-
-function drawObserver(r){
-  const x = screenX(r) + halfSize(r) + 60;
-  const y = STAR.y;
-  const pb = visualBrightness(r);
-  ctx.save();
-  ctx.font = '28px Segoe UI';
-  ctx.textAlign = 'center';
-  ctx.fillText('👁️', x, y + 8);
-
-  const lampY = y + 32;
-  const lampRgb = mixColor(pb, [255,235,150], [110,100,105]);
-  ctx.shadowColor = `rgba(${lampRgb},0.9)`;
-  ctx.shadowBlur = 9 * pb;
-  ctx.fillStyle = `rgba(${lampRgb},${0.15 + 0.75 * pb})`;
-  ctx.beginPath();
-  ctx.arc(x, lampY, 7, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.shadowBlur = 0;
-  ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  ctx.fillStyle = '#cfe4f2';
-  ctx.font = '13px Segoe UI';
-  ctx.fillText('관측자', x, y + 54);
   ctx.restore();
 }
 
