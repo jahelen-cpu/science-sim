@@ -13,7 +13,7 @@ body {
   min-height: 100vh;
   font-family: 'Segoe UI', Arial, sans-serif;
   display: flex; flex-direction: column; align-items: center;
-  padding: 14px 16px 30px; color: #eee; overflow-x: hidden;
+  padding: 20px 16px 40px; color: #eee; overflow-x: hidden;
 }
 body::before{
   content:''; position: fixed; inset: 0; pointer-events: none; z-index: -1;
@@ -29,128 +29,89 @@ body::before{
   background-repeat: no-repeat;
 }
 
-h1 { font-size: 36px; font-weight: 700; margin-bottom: 4px; text-shadow: 0 2px 10px rgba(0,0,0,.6); }
-.guide { font-size: 21px; font-weight: 600; color: #a9c6e8; margin-bottom: 4px; text-align: center; max-width: 980px; }
-.subnote { font-size: 16px; color: #5f7797; margin-bottom: 14px; text-align: center; }
+h1 { font-size: 38px; font-weight: 700; margin-bottom: 6px; text-shadow: 0 2px 10px rgba(0,0,0,.6); }
+.guide { font-size: 21px; font-weight: 600; color: #a9c6e8; margin-bottom: 4px; text-align: center; max-width: 900px; line-height: 1.5; }
+.subnote { font-size: 15px; color: #5f7797; margin-bottom: 18px; text-align: center; max-width: 800px; }
 
-.stage-wrap { position: relative; }
+.stage-wrap { position: relative; width: 100%; max-width: 1080px; }
 .formula-badge {
-  position: absolute; top: 10px; right: 10px;
+  position: absolute; top: 14px; right: 14px;
   background: #fffdf5; color: #3a2f00; border-radius: 10px;
-  padding: 8px 18px; font-size: 21px; font-weight: 800;
+  padding: 9px 20px; font-size: 22px; font-weight: 800;
   box-shadow: 0 4px 16px rgba(0,0,0,.5); letter-spacing: .5px;
+  z-index: 2;
 }
-#mainCanvas { display: block; max-width: 100%; border-radius: 16px; background: #050912; box-shadow: 0 8px 36px rgba(0,0,0,.6); }
+.legend {
+  position: absolute; top: 14px; left: 14px; z-index: 2;
+  background: rgba(5,10,20,.55); border: 1px solid rgba(255,255,255,.12);
+  border-radius: 10px; padding: 10px 16px; font-size: 14px; color: #cfe4f2;
+  line-height: 1.7;
+}
+.legend span.dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; }
 
-.app-layout { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; justify-content: center; }
+#mainCanvas { display: block; width: 100%; height: auto; border-radius: 18px; background: #050912; box-shadow: 0 10px 44px rgba(0,0,0,.6); }
 
-.sidebar { width: 340px; display: flex; flex-direction: column; gap: 12px; }
-.card { background: rgba(255,255,255,0.06); border-radius: 14px; padding: 14px 16px; }
-.card h3 { font-size: 16px; color: #7fa3bd; margin-bottom: 8px; font-weight: 700; }
-
-.stat-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 18px; color: #cfe4f2; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
-.stat-row:last-child { border-bottom: none; }
-.stat-row b { font-size: 25px; }
-#statDist { color: #FFD54F; }
-#statArea { color: #64B5F6; }
-#statBright { color: #FF8A65; }
-
-#graphCanvas { display: block; width: 100%; height: auto; border-radius: 10px; }
-
-table.data-table { width: 100%; border-collapse: collapse; font-size: 15px; }
-.data-table th, .data-table td { padding: 5px 4px; text-align: center; color: #9fb0c4; }
-.data-table th { color: #7fa3bd; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,.15); }
-.data-table tr.active-row td { background: rgba(255,213,79,.18); color: #fff; font-weight: 800; border-radius: 4px; }
-
-.controls { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 16px; width: 100%; max-width: 800px; }
-.slider-row { display: flex; align-items: center; gap: 14px; width: 100%; font-size: 18px; }
-input[type=range] { flex: 1; accent-color: #FFD54F; height: 6px; cursor: pointer; }
-.jump-btns { display: flex; gap: 8px; }
+.controls { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 22px; width: 100%; max-width: 720px; }
+.slider-row { display: flex; align-items: center; gap: 14px; width: 100%; font-size: 19px; }
+input[type=range] { flex: 1; accent-color: #FFD54F; height: 7px; cursor: pointer; }
+.jump-btns { display: flex; gap: 10px; }
 .jump-btns button {
-  padding: 7px 16px; border-radius: 8px; border: 2px solid rgba(255,255,255,.15);
-  background: rgba(255,255,255,.06); color: #cfe4f2; font-size: 17px; font-weight: 700; cursor: pointer;
+  padding: 9px 22px; border-radius: 10px; border: 2px solid rgba(255,255,255,.15);
+  background: rgba(255,255,255,.06); color: #cfe4f2; font-size: 18px; font-weight: 700; cursor: pointer;
   transition: all .15s;
 }
 .jump-btns button:hover { border-color: rgba(255,255,255,.35); }
 .jump-btns button.active { background: rgba(255,213,79,.25); border-color: #FFD54F; color: #fff; box-shadow: 0 0 12px rgba(255,213,79,.5); }
 
-.quiz-box {
-  width: 1140px; max-width: 94vw; margin-top: 18px;
-  background: rgba(255,235,59,0.08); border: 1px solid rgba(255,235,59,.3);
-  border-radius: 14px; padding: 16px 20px;
+.stats-bar {
+  display: flex; gap: 40px; margin-top: 20px; flex-wrap: wrap; justify-content: center;
 }
-.quiz-box p { font-size: 20px; margin-bottom: 10px; color: #f0e6c0; }
-.quiz-options { display: flex; gap: 10px; flex-wrap: wrap; }
-.quiz-options button {
-  padding: 9px 18px; border-radius: 10px; border: none;
-  background: #37474F; color: #fff; font-size: 18px; font-weight: 700; cursor: pointer; transition: background .15s;
+.stat-pill {
+  background: rgba(255,255,255,0.06); border-radius: 14px; padding: 12px 26px;
+  text-align: center; min-width: 160px;
 }
-.quiz-options button:hover { background: #455A64; }
-.quiz-options button.correct { background: #2e7d32; }
-.quiz-options button.wrong { background: #c62828; }
-#quizFeedback { margin-top: 10px; font-size: 18px; font-weight: 700; min-height: 1.4em; }
+.stat-pill .label { font-size: 14px; color: #7fa3bd; font-weight: 700; margin-bottom: 4px; }
+.stat-pill .value { font-size: 28px; font-weight: 800; }
+#statDist { color: #FFD54F; }
+#statBright { color: #FF8A65; }
 </style>
 </head>
 <body>
 <h1>⭐ 별의 거리와 밝기</h1>
-<p class="guide">슬라이더를 움직여 별까지의 거리를 바꿔보세요. 거리가 멀어질수록 같은 양의 빛이 더 넓은 면적에 퍼지기 때문에, 별은 더 어둡게 보여요!</p>
-<p class="subnote">※ 별빛이 사방으로 퍼져나가는 모습을 단순화하여 표현한 시뮬레이션입니다.</p>
+<p class="guide">별빛은 별을 중심으로 사방(구 형태)으로 고르게 퍼져나가요. 우리 눈은 그 넓은 구 표면 중 아주 작은 한 조각만 바라보는 셈이죠. 거리가 멀어질수록 같은 조각에 닿는 빛의 양이 줄어들어, 별은 점점 더 어둡게 보여요.</p>
+<p class="subnote">※ 별빛이 3차원 구 형태로 퍼지는 모습을 2차원 단면으로 단순화하여 표현한 시뮬레이션입니다.</p>
 
 <div class="stage-wrap">
+  <div class="legend">
+    <div><span class="dot" style="background:#ffe082;"></span>별빛이 퍼지는 구 (단면)</div>
+    <div><span class="dot" style="background:#FFD54F;"></span>우리가 보는 부분</div>
+  </div>
   <div class="formula-badge">별의 밝기 ∝ 1 / r²</div>
-  <canvas id="mainCanvas" width="800" height="400"></canvas>
+  <canvas id="mainCanvas" width="1100" height="620"></canvas>
 </div>
 
 <div class="controls">
   <div class="slider-row">
     <span>가까이</span>
-    <input type="range" id="distSlider" min="1" max="5" step="1" value="1">
+    <input type="range" id="distSlider" min="1" max="3" step="1" value="1">
     <span>멀리</span>
   </div>
   <div class="jump-btns">
     <button data-r="1">1r</button>
     <button data-r="2">2r</button>
     <button data-r="3">3r</button>
-    <button data-r="4">4r</button>
-    <button data-r="5">5r</button>
   </div>
 </div>
 
-<div class="app-layout" style="margin-top:18px;">
-  <div class="sidebar">
-    <div class="card">
-      <h3>현재 상태</h3>
-      <div class="stat-row"><span>별까지의 거리</span><b id="statDist">1r</b></div>
-      <div class="stat-row"><span>빛이 퍼지는 면적</span><b id="statArea">1배</b></div>
-      <div class="stat-row"><span>별의 밝기</span><b id="statBright">1배</b></div>
-    </div>
-    <div class="card">
-      <h3>거리에 따른 밝기 변화</h3>
-      <canvas id="graphCanvas" width="300" height="180"></canvas>
-    </div>
-    <div class="card">
-      <h3>거리·면적·밝기 비교표</h3>
-      <table class="data-table" id="dataTable">
-        <tr><th>거리</th><th>면적</th><th>밝기</th></tr>
-        <tr data-r="1"><td>1r</td><td>1배</td><td>1배</td></tr>
-        <tr data-r="2"><td>2r</td><td>4배</td><td>1/4배</td></tr>
-        <tr data-r="3"><td>3r</td><td>9배</td><td>1/9배</td></tr>
-        <tr data-r="4"><td>4r</td><td>16배</td><td>1/16배</td></tr>
-        <tr data-r="5"><td>5r</td><td>25배</td><td>1/25배</td></tr>
-      </table>
-    </div>
+<div class="stats-bar">
+  <div class="stat-pill">
+    <div class="label">별까지의 거리</div>
+    <div class="value" id="statDist">1r</div>
   </div>
-</div>
-
-<div class="quiz-box">
-  <p>❓ 별까지의 거리가 <b>4배</b> 멀어지면, 별의 밝기는 처음의 몇 배가 될까요?</p>
-  <div class="quiz-options">
-    <button data-correct="false">1/2배</button>
-    <button data-correct="false">1/4배</button>
-    <button data-correct="false">1/8배</button>
-    <button data-correct="true">1/16배</button>
+  <div class="stat-pill">
+    <div class="label">별의 밝기</div>
+    <div class="value" id="statBright">1배</div>
   </div>
-  <p id="quizFeedback"></p>
 </div>
 
 <script>
@@ -158,12 +119,12 @@ const canvas = document.getElementById('mainCanvas');
 const ctx = canvas.getContext('2d');
 const W = canvas.width, H = canvas.height;
 
-const STAR = { x: 70, y: 200 };
-const DX = 110;
-const K = 11;
-const R_MAX = 5;
+const R_MAX = 3;
+const STAR = { x: 190, y: H / 2 };
+const UNIT_R = (W - STAR.x - 110) / R_MAX;
+const K = UNIT_R * 0.11;
 
-function screenX(r){ return STAR.x + DX * r; }
+function screenX(r){ return STAR.x + UNIT_R * r; }
 function halfSize(r){ return K * r; }
 function brightness(r){ return 1 / (r * r); }
 function areaMul(r){ return r * r; }
@@ -171,10 +132,12 @@ function fracLabel(r){ return r === 1 ? '1배' : `1/${r * r}배`; }
 
 let currentR = 1;
 
-const stars = [];
-for (let i = 0; i < 70; i++) {
-  stars.push({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.4 + 0.3, a: Math.random() * 0.6 + 0.3 });
+const bgStars = [];
+for (let i = 0; i < 90; i++) {
+  bgStars.push({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.4 + 0.3, a: Math.random() * 0.6 + 0.3 });
 }
+
+const NUM_RAYS = 28;
 
 function draw(){
   const bg = ctx.createLinearGradient(0, 0, 0, H);
@@ -184,7 +147,7 @@ function draw(){
   ctx.fillRect(0, 0, W, H);
 
   ctx.save();
-  stars.forEach(s => {
+  bgStars.forEach(s => {
     ctx.globalAlpha = s.a;
     ctx.fillStyle = '#fff';
     ctx.beginPath();
@@ -193,17 +156,10 @@ function draw(){
   });
   ctx.restore();
 
-  const slope = K / DX;
-  const farX = W - 40;
-  const dyFar = slope * (farX - STAR.x);
-  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(STAR.x, STAR.y);
-  ctx.lineTo(farX, STAR.y - dyFar);
-  ctx.moveTo(STAR.x, STAR.y);
-  ctx.lineTo(farX, STAR.y + dyFar);
-  ctx.stroke();
+  drawOmniRays();
+  drawGlowSphere();
+  drawReferenceCircles();
+  drawObserverWedge();
 
   for (let r = 1; r <= R_MAX; r++) {
     if (r !== currentR) drawPatch(r, false);
@@ -213,13 +169,90 @@ function draw(){
   drawObserver(currentR);
 }
 
+// 별빛이 사방으로 퍼져나가는 것을 표현하는 옅은 방사선
+function drawOmniRays(){
+  ctx.save();
+  const maxLen = UNIT_R * R_MAX;
+  for (let i = 0; i < NUM_RAYS; i++) {
+    const angle = (i / NUM_RAYS) * Math.PI * 2;
+    const x2 = STAR.x + Math.cos(angle) * maxLen;
+    const y2 = STAR.y + Math.sin(angle) * maxLen;
+    ctx.strokeStyle = 'rgba(255,224,130,0.07)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(STAR.x, STAR.y);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// 광택 있는 3D 공처럼 보이도록 중심을 살짝 벗어난 하이라이트를 넣은 구 형태
+function drawShadedSphere(cx, cy, r, rgb, alpha){
+  ctx.save();
+  const hlx = cx - r * 0.3, hly = cy - r * 0.3;
+  const g = ctx.createRadialGradient(hlx, hly, r * 0.02, cx, cy, r * 1.02);
+  g.addColorStop(0,    `rgba(${rgb},${0.9 * alpha})`);
+  g.addColorStop(0.35, `rgba(${rgb},${0.45 * alpha})`);
+  g.addColorStop(0.75, `rgba(${rgb},${0.18 * alpha})`);
+  g.addColorStop(1,    `rgba(${rgb},0)`);
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = `rgba(${rgb},${0.4 * alpha})`;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// 별빛이 도달한 범위를 입체 구로 표현 - 멀어질수록 옅어짐(밝기 1/r^2 반영)
+function drawGlowSphere(){
+  const radius = UNIT_R * currentR;
+  const b = brightness(currentR);
+  drawShadedSphere(STAR.x, STAR.y, radius, '255,224,140', 0.55 * b + 0.12);
+}
+
+// 1r, 2r, 3r 기준 구
+function drawReferenceCircles(){
+  ctx.save();
+  ctx.font = '13px Segoe UI';
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.textAlign = 'center';
+  for (let r = 1; r <= R_MAX; r++) {
+    const radius = UNIT_R * r;
+    drawShadedSphere(STAR.x, STAR.y, radius, '180,200,220', 0.22);
+    ctx.fillText(`${r}r`, STAR.x, STAR.y - radius - 8);
+  }
+  ctx.restore();
+}
+
+// 관측자가 바라보는 좁은 부채꼴(우리가 실제로 보는 부분)
+function drawObserverWedge(){
+  const farX = screenX(R_MAX);
+  const hs = halfSize(R_MAX);
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(STAR.x, STAR.y);
+  ctx.lineTo(farX, STAR.y - hs);
+  ctx.moveTo(STAR.x, STAR.y);
+  ctx.lineTo(farX, STAR.y + hs);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function drawPatch(r, active){
   const x = screenX(r), hs = halfSize(r);
   ctx.save();
   if (active) {
     const b = brightness(r);
     ctx.shadowColor = 'rgba(255,193,7,0.9)';
-    ctx.shadowBlur = 18 * b + 4;
+    ctx.shadowBlur = 22 * b + 4;
     ctx.fillStyle = `rgba(255,183,77,${0.35 + 0.55 * b})`;
     ctx.fillRect(x - hs, STAR.y - hs, hs * 2, hs * 2);
     ctx.shadowBlur = 0;
@@ -242,11 +275,11 @@ function drawPatch(r, active){
     ctx.strokeRect(x - hs, STAR.y - hs, hs * 2, hs * 2);
 
     ctx.fillStyle = '#FFD54F';
-    ctx.font = 'bold 18px Segoe UI';
+    ctx.font = 'bold 19px Segoe UI';
     ctx.textAlign = 'center';
-    ctx.fillText(r === 1 ? '거리 r' : `거리 ${r}r`, x, STAR.y - hs - 34);
+    ctx.fillText(r === 1 ? '거리 r' : `거리 ${r}r`, x, STAR.y - hs - 36);
     ctx.fillStyle = '#FF8A65';
-    ctx.font = 'bold 20px Segoe UI';
+    ctx.font = 'bold 21px Segoe UI';
     ctx.fillText(fracLabel(r), x, STAR.y - hs - 12);
   } else {
     ctx.globalAlpha = 0.32;
@@ -266,37 +299,36 @@ function drawPatch(r, active){
 
 function drawStar(){
   ctx.save();
-  const g = ctx.createRadialGradient(STAR.x, STAR.y, 0, STAR.x, STAR.y, 26);
+  const g = ctx.createRadialGradient(STAR.x, STAR.y, 0, STAR.x, STAR.y, 34);
   g.addColorStop(0, '#fffdf0');
   g.addColorStop(0.4, '#ffe082');
   g.addColorStop(1, 'rgba(255,193,7,0)');
   ctx.fillStyle = g;
   ctx.beginPath();
-  ctx.arc(STAR.x, STAR.y, 26, 0, Math.PI * 2);
+  ctx.arc(STAR.x, STAR.y, 34, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = '#fff8e1';
   ctx.beginPath();
-  ctx.arc(STAR.x, STAR.y, 9, 0, Math.PI * 2);
+  ctx.arc(STAR.x, STAR.y, 12, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 }
 
 function drawObserver(r){
-  const x = screenX(r) + halfSize(r) + 50;
+  const x = screenX(r) + halfSize(r) + 60;
   const y = STAR.y;
   const b = brightness(r);
   ctx.save();
-  ctx.font = '24px Segoe UI';
+  ctx.font = '28px Segoe UI';
   ctx.textAlign = 'center';
-  ctx.fillText('👁️', x, y + 6);
+  ctx.fillText('👁️', x, y + 8);
 
-  // small perceived-brightness lamp (fixed size, only opacity/glow scale with b)
-  const lampY = y + 26;
+  const lampY = y + 32;
   ctx.shadowColor = 'rgba(255,235,150,0.9)';
-  ctx.shadowBlur = 6 * b;
+  ctx.shadowBlur = 7 * b;
   ctx.fillStyle = `rgba(255,224,130,${0.25 + 0.65 * b})`;
   ctx.beginPath();
-  ctx.arc(x, lampY, 6, 0, Math.PI * 2);
+  ctx.arc(x, lampY, 7, 0, Math.PI * 2);
   ctx.fill();
   ctx.shadowBlur = 0;
   ctx.strokeStyle = 'rgba(255,255,255,0.4)';
@@ -304,80 +336,14 @@ function drawObserver(r){
   ctx.stroke();
 
   ctx.fillStyle = '#cfe4f2';
-  ctx.font = '12px Segoe UI';
-  ctx.fillText('관측자', x, y + 46);
+  ctx.font = '13px Segoe UI';
+  ctx.fillText('관측자', x, y + 54);
   ctx.restore();
-}
-
-const gcanvas = document.getElementById('graphCanvas');
-const gctx = gcanvas.getContext('2d');
-const GW = gcanvas.width, GH = gcanvas.height;
-
-function drawGraph(){
-  gctx.clearRect(0, 0, GW, GH);
-  gctx.fillStyle = '#0d1526';
-  gctx.fillRect(0, 0, GW, GH);
-
-  const padL = 30, padR = 12, padT = 12, padB = 26;
-  const plotW = GW - padL - padR, plotH = GH - padT - padB;
-  const xr = r => padL + (r - 1) / (R_MAX - 1) * plotW;
-  const yr = b => padT + (1 - b) * plotH;
-
-  gctx.strokeStyle = 'rgba(255,255,255,0.08)';
-  gctx.lineWidth = 1;
-  for (let r = 1; r <= R_MAX; r++) {
-    gctx.beginPath();
-    gctx.moveTo(xr(r), padT);
-    gctx.lineTo(xr(r), padT + plotH);
-    gctx.stroke();
-  }
-
-  gctx.strokeStyle = 'rgba(255,255,255,0.35)';
-  gctx.lineWidth = 1;
-  gctx.beginPath();
-  gctx.moveTo(padL, padT);
-  gctx.lineTo(padL, padT + plotH);
-  gctx.lineTo(padL + plotW, padT + plotH);
-  gctx.stroke();
-
-  gctx.strokeStyle = '#FFD54F';
-  gctx.lineWidth = 2.5;
-  gctx.lineJoin = 'round';
-  gctx.lineCap = 'round';
-  gctx.beginPath();
-  for (let i = 0; i <= 100; i++) {
-    const r = 1 + (R_MAX - 1) * i / 100;
-    const b = 1 / (r * r);
-    const x = xr(r), y = yr(b);
-    if (i === 0) gctx.moveTo(x, y); else gctx.lineTo(x, y);
-  }
-  gctx.stroke();
-
-  const b = brightness(currentR);
-  const mx = xr(currentR), my = yr(b);
-  gctx.fillStyle = '#FF8A65';
-  gctx.beginPath();
-  gctx.arc(mx, my, 5, 0, Math.PI * 2);
-  gctx.fill();
-  gctx.strokeStyle = '#fff';
-  gctx.lineWidth = 1.5;
-  gctx.stroke();
-
-  gctx.fillStyle = '#9fb0c4';
-  gctx.font = '11px Segoe UI';
-  gctx.textAlign = 'center';
-  for (let r = 1; r <= R_MAX; r++) {
-    gctx.fillText(r + 'r', xr(r), padT + plotH + 15);
-  }
 }
 
 function updateStats(){
   document.getElementById('statDist').textContent = currentR === 1 ? '1r (기준)' : `${currentR}r`;
-  document.getElementById('statArea').textContent = `${areaMul(currentR)}배`;
   document.getElementById('statBright').textContent = fracLabel(currentR);
-  document.querySelectorAll('#dataTable tr[data-r]').forEach(tr => {
-    tr.classList.toggle('active-row', +tr.dataset.r === currentR);
-  });
   document.querySelectorAll('.jump-btns button').forEach(b => {
     b.classList.toggle('active', +b.dataset.r === currentR);
   });
@@ -388,31 +354,11 @@ function setR(r){
   document.getElementById('distSlider').value = r;
   updateStats();
   draw();
-  drawGraph();
 }
 
 document.getElementById('distSlider').addEventListener('input', e => setR(+e.target.value));
 document.querySelectorAll('.jump-btns button').forEach(b => {
   b.addEventListener('click', () => setR(+b.dataset.r));
-});
-
-let quizAnswered = false;
-document.querySelectorAll('.quiz-options button').forEach(btn => {
-  btn.addEventListener('click', () => {
-    if (quizAnswered) return;
-    const feedback = document.getElementById('quizFeedback');
-    if (btn.dataset.correct === 'true') {
-      quizAnswered = true;
-      btn.classList.add('correct');
-      feedback.innerHTML = '🎉 정답입니다! 거리가 4배 멀어지면 빛이 퍼지는 면적은 4×4=16배로 넓어지므로, 별의 밝기는 <b>1/16배</b>로 어두워져요.';
-      feedback.style.color = '#a5d6a7';
-    } else {
-      btn.classList.add('wrong');
-      feedback.textContent = '다시 생각해보세요! 거리가 n배 멀어지면, 빛이 퍼지는 면적은 n²배로 넓어진답니다.';
-      feedback.style.color = '#ffab91';
-      setTimeout(() => btn.classList.remove('wrong'), 700);
-    }
-  });
 });
 
 setR(1);
