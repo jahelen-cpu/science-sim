@@ -134,6 +134,9 @@ function halfSize(r){ return K * r; }
 function brightness(r){ return 1 / (r * r); }
 function areaMul(r){ return r * r; }
 function fracLabel(r){ return r === 1 ? '1배' : `1/${r * r}배`; }
+// 화면 표현용 밝기: 실제 밝기(1/r^2)를 그대로 쓰면 1r과 2r 사이 대비가 너무 급격해 보여서,
+// 눈에 보이는 대비를 완만하게 만들기 위해 제곱근(1/r)을 사용함. 수치 라벨은 실제 값(fracLabel)을 그대로 표시.
+function visualBrightness(r){ return 1 / r; }
 
 // 밝을 때(hot)와 어두울 때(dim)의 색을 밝기(b, 0~1)에 따라 섞어 대비를 키움
 function mixColor(b, hot, dim){
@@ -203,12 +206,13 @@ function drawOmniRays(){
   ctx.restore();
 }
 
-// 다른 방향에도 똑같이 별빛이 닿고 있다는 것을 보여주는 작은 참고 관측 지점들
+// 다른 방향에도 똑같이 별빛이 닿고 있다는 것을 보여주는 참고 관측 지점들
+// (오른쪽에 표시되는 메인 관측 지점과 동일한 방식으로 그려서 사방이 같다는 걸 보여줌)
 function drawOtherDirectionPatches(r){
-  const b = brightness(r);
+  const pb = visualBrightness(r);
   const radius = UNIT_R * r;
-  const hs = halfSize(r) * 0.8;
-  const angles = [95, 165, 245]; // 오른쪽(0도, 우리가 보는 방향)을 피한 다른 방향들
+  const hs = halfSize(r);
+  const angles = [70, 150, 230, 310]; // 오른쪽(0도, 메인 관측 지점)을 피한 다른 방향들
   ctx.save();
   angles.forEach(deg => {
     const rad = deg * Math.PI / 180;
@@ -222,18 +226,55 @@ function drawOtherDirectionPatches(r){
     ctx.lineTo(cx, cy);
     ctx.stroke();
 
-    ctx.fillStyle = `rgba(${mixColor(b, [255,183,77], [70,60,65])},${0.15 + 0.55 * b})`;
-    ctx.fillRect(cx - hs, cy - hs, hs * 2, hs * 2);
-    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(cx - hs, cy - hs, hs * 2, hs * 2);
+    drawGlowPatch(cx, cy, hs, r, pb, false);
 
-    ctx.font = `${14 + 6 * b}px Segoe UI`;
+    ctx.font = `${16 + 8 * pb}px Segoe UI`;
     ctx.textAlign = 'center';
-    ctx.globalAlpha = 0.5 + 0.5 * b;
-    ctx.fillText('👁️', cx, cy - hs - 8);
+    ctx.globalAlpha = 0.55 + 0.45 * pb;
+    ctx.fillText('👁️', cx, cy - hs - 10);
     ctx.globalAlpha = 1;
   });
+  ctx.restore();
+}
+
+// 반짝이는 관측 패치(격자 + 테두리)를 그리는 공용 함수 - 메인 방향과 다른 방향 모두에 사용
+function drawGlowPatch(cx, cy, hs, r, pb, showLabel){
+  ctx.save();
+  const fillRgb = mixColor(pb, [255,193,80], [80,72,76]);
+  const edgeRgb = mixColor(pb, [255,213,79], [130,115,110]);
+
+  ctx.shadowColor = `rgba(${fillRgb},0.85)`;
+  ctx.shadowBlur = 18 * pb + 2;
+  ctx.fillStyle = `rgba(${fillRgb},${0.18 + 0.6 * pb})`;
+  ctx.fillRect(cx - hs, cy - hs, hs * 2, hs * 2);
+  ctx.shadowBlur = 0;
+
+  ctx.strokeStyle = `rgba(255,255,255,${0.18 + 0.32 * pb})`;
+  ctx.lineWidth = 1;
+  const cell = (hs * 2) / r;
+  for (let i = 1; i < r; i++) {
+    ctx.beginPath();
+    ctx.moveTo(cx - hs + i * cell, cy - hs);
+    ctx.lineTo(cx - hs + i * cell, cy + hs);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx - hs, cy - hs + i * cell);
+    ctx.lineTo(cx + hs, cy - hs + i * cell);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = `rgb(${edgeRgb})`;
+  ctx.lineWidth = 2.2;
+  ctx.strokeRect(cx - hs, cy - hs, hs * 2, hs * 2);
+
+  if (showLabel) {
+    ctx.fillStyle = `rgb(${edgeRgb})`;
+    ctx.font = 'bold 19px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.fillText(r === 1 ? '거리 r' : `거리 ${r}r`, cx, cy - hs - 36);
+    ctx.fillStyle = `rgb(${mixColor(pb, [255,138,101], [150,120,110])})`;
+    ctx.font = 'bold 21px Segoe UI';
+    ctx.fillText(fracLabel(r), cx, cy - hs - 12);
+  }
   ctx.restore();
 }
 
@@ -259,12 +300,12 @@ function drawShadedSphere(cx, cy, r, rgb, alpha){
   ctx.restore();
 }
 
-// 별빛이 도달한 범위를 입체 구로 표현 - 멀어질수록 확 옅어짐(밝기 1/r^2 반영)
+// 별빛이 도달한 범위를 입체 구로 표현 - 멀어질수록 옅어짐(완만한 시각적 대비 사용)
 function drawGlowSphere(){
   const radius = UNIT_R * currentR;
-  const b = brightness(currentR);
-  const rgb = mixColor(b, [255,241,190], [90,85,95]);
-  drawShadedSphere(STAR.x, STAR.y, radius, rgb, 0.85 * b + 0.03);
+  const pb = visualBrightness(currentR);
+  const rgb = mixColor(pb, [255,241,190], [110,105,112]);
+  drawShadedSphere(STAR.x, STAR.y, radius, rgb, 0.55 * pb + 0.18);
 }
 
 // 1r, 2r, 3r 기준 구
@@ -301,39 +342,7 @@ function drawPatch(r, active){
   const x = screenX(r), hs = halfSize(r);
   ctx.save();
   if (active) {
-    const b = brightness(r);
-    const fillRgb = mixColor(b, [255,193,80], [75,65,70]);
-    const edgeRgb = mixColor(b, [255,213,79], [120,105,100]);
-    ctx.shadowColor = `rgba(${fillRgb},0.9)`;
-    ctx.shadowBlur = 26 * b + 1;
-    ctx.fillStyle = `rgba(${fillRgb},${0.1 + 0.85 * b})`;
-    ctx.fillRect(x - hs, STAR.y - hs, hs * 2, hs * 2);
-    ctx.shadowBlur = 0;
-
-    ctx.strokeStyle = `rgba(255,255,255,${0.2 + 0.4 * b})`;
-    ctx.lineWidth = 1;
-    const cell = (hs * 2) / r;
-    for (let i = 1; i < r; i++) {
-      ctx.beginPath();
-      ctx.moveTo(x - hs + i * cell, STAR.y - hs);
-      ctx.lineTo(x - hs + i * cell, STAR.y + hs);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(x - hs, STAR.y - hs + i * cell);
-      ctx.lineTo(x + hs, STAR.y - hs + i * cell);
-      ctx.stroke();
-    }
-    ctx.strokeStyle = `rgb(${edgeRgb})`;
-    ctx.lineWidth = 2.5;
-    ctx.strokeRect(x - hs, STAR.y - hs, hs * 2, hs * 2);
-
-    ctx.fillStyle = `rgb(${edgeRgb})`;
-    ctx.font = 'bold 19px Segoe UI';
-    ctx.textAlign = 'center';
-    ctx.fillText(r === 1 ? '거리 r' : `거리 ${r}r`, x, STAR.y - hs - 36);
-    ctx.fillStyle = `rgb(${mixColor(b, [255,138,101], [140,110,100])})`;
-    ctx.font = 'bold 21px Segoe UI';
-    ctx.fillText(fracLabel(r), x, STAR.y - hs - 12);
+    drawGlowPatch(x, STAR.y, hs, r, visualBrightness(r), true);
   } else {
     ctx.globalAlpha = 0.32;
     ctx.fillStyle = '#8a99ad';
@@ -370,17 +379,17 @@ function drawStar(){
 function drawObserver(r){
   const x = screenX(r) + halfSize(r) + 60;
   const y = STAR.y;
-  const b = brightness(r);
+  const pb = visualBrightness(r);
   ctx.save();
   ctx.font = '28px Segoe UI';
   ctx.textAlign = 'center';
   ctx.fillText('👁️', x, y + 8);
 
   const lampY = y + 32;
-  const lampRgb = mixColor(b, [255,235,150], [90,80,85]);
+  const lampRgb = mixColor(pb, [255,235,150], [110,100,105]);
   ctx.shadowColor = `rgba(${lampRgb},0.9)`;
-  ctx.shadowBlur = 9 * b;
-  ctx.fillStyle = `rgba(${lampRgb},${0.06 + 0.88 * b})`;
+  ctx.shadowBlur = 9 * pb;
+  ctx.fillStyle = `rgba(${lampRgb},${0.15 + 0.75 * pb})`;
   ctx.beginPath();
   ctx.arc(x, lampY, 7, 0, Math.PI * 2);
   ctx.fill();
