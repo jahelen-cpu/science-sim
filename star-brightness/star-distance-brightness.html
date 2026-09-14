@@ -74,6 +74,23 @@ input[type=range] { flex: 1; accent-color: #FFD54F; height: 7px; cursor: pointer
 .stat-pill .value { font-size: 28px; font-weight: 800; }
 #statDist { color: #FFD54F; }
 #statBright { color: #FF8A65; }
+
+.formula-strip {
+  display: flex; justify-content: center; margin-top: 18px; width: 100%; max-width: 1080px;
+}
+.f-box {
+  background: rgba(255,224,130,0.14); border: 1px solid rgba(255,224,130,.35);
+  border-radius: 12px; padding: 12px 26px; text-align: center; font-size: 18px; color: #fdf6e3;
+}
+.f-box .line1 { margin-bottom: 6px; }
+.f-box b.area { color: #FFD54F; }
+.f-box b.bright { color: #FF6B5B; font-size: 22px; }
+.summary-box {
+  margin-top: 12px; width: 100%; max-width: 1080px;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,.15);
+  border-radius: 12px; padding: 12px 22px; text-align: center; font-size: 17px; color: #cfe4f2; line-height: 1.6;
+}
+.summary-box b { color: #FFD54F; }
 </style>
 </head>
 <body>
@@ -84,7 +101,7 @@ input[type=range] { flex: 1; accent-color: #FFD54F; height: 7px; cursor: pointer
 <div class="controls">
   <div class="slider-row">
     <span>가까이</span>
-    <input type="range" id="distSlider" min="1" max="3" step="1" value="1">
+    <input type="range" id="distSlider" min="1" max="3" step="0.02" value="1">
     <span>멀리</span>
   </div>
   <div class="jump-btns">
@@ -109,11 +126,18 @@ input[type=range] { flex: 1; accent-color: #FFD54F; height: 7px; cursor: pointer
   <div class="legend">
     <div><span class="dot" style="background:#ffe082;"></span>별빛이 퍼지는 구 (단면)</div>
     <div><span class="dot" style="background:#FFD54F;"></span>우리가 보는 부분</div>
-    <div><span class="dot" style="background:#8a99ad;"></span>다른 방향의 관측 지점</div>
   </div>
   <div class="formula-badge">별의 밝기 ∝ 1 / r²</div>
-  <canvas id="mainCanvas" width="1000" height="900"></canvas>
+  <canvas id="mainCanvas" width="1200" height="900"></canvas>
 </div>
+
+<div class="formula-strip">
+  <div class="f-box">
+    <div class="line1" id="fAreaLine"></div>
+    <div>별의 밝기 = <b class="bright" id="fBrightLine"></b></div>
+  </div>
+</div>
+<div class="summary-box" id="summaryBox"></div>
 
 <script>
 const canvas = document.getElementById('mainCanvas');
@@ -122,18 +146,36 @@ const W = canvas.width, H = canvas.height;
 
 const R_MAX = 3;
 const MARGIN = 55;
-const OBSERVER_SPACE = 130;
+const OBSERVER_SPACE = 300;
 // 별을 중심으로 한 구 전체(위/아래/왼쪽 포함)가 캔버스 안에 다 들어오도록 반지름을 계산
 const R_TOTAL = Math.min(H / 2 - MARGIN, (W - OBSERVER_SPACE - 2 * MARGIN) / 2);
 const UNIT_R = R_TOTAL / R_MAX;
 const STAR = { x: MARGIN + R_TOTAL, y: H / 2 };
 const K = UNIT_R * 0.16;
 
+// 이미지1 스타일의 확대 콜아웃: 격자 한 칸의 크기는 항상 동일하게 고정하고,
+// r이 커질수록 칸 수(r×r)가 늘어나 정사각형 전체 크기도 "정확히 r배"로 커지도록 함.
+// (예전에는 정사각형을 감싸는 여백/캡션 영역이 고정 크기라서 전체 박스가 커지는 비율이
+//  r배보다 훨씬 완만해 보였음 - 그래서 정사각형 자체를 캡션 없이 딱 그 크기로만 그림)
+const CALLOUT_CELL = 46;
+const CALLOUT_GAP = 55; // 패치 오른쪽 모서리 ~ 정사각형 왼쪽 모서리 사이 거리
+const CALLOUT_CAPTION_GAP = 14; // 정사각형 아래 캡션까지 여백(캡션은 박스 크기에 포함되지 않음)
+
+function calloutGeom(r){
+  const gridSize = CALLOUT_CELL * r; // 한 변의 길이가 정확히 r배 -> 넓이는 정확히 r²배
+  const x0 = screenX(r) + halfSize(r) + CALLOUT_GAP;
+  const y0 = STAR.y - gridSize / 2;
+  return { x0, y0, gridSize };
+}
+
 function screenX(r){ return STAR.x + UNIT_R * r; }
 function halfSize(r){ return K * r; }
 function brightness(r){ return 1 / (r * r); }
 function areaMul(r){ return r * r; }
 function fracLabel(r){ return r === 1 ? '1배' : `1/${r * r}배`; }
+// 드래그 중에는 연속적인 값을 쓰되, 격자 개수·공식·라벨처럼 정수여야 하는 곳은
+// 가장 가까운 정수(1r/2r/3r)로 스냅해서 사용함
+function snap(r){ return Math.max(1, Math.min(R_MAX, Math.round(r))); }
 // 화면 표현용 밝기: 실제 밝기(1/r^2)를 그대로 쓰면 1r과 2r 사이 대비가 너무 급격해 보여서,
 // 눈에 보이는 대비를 완만하게 만들기 위해 제곱근(1/r)을 사용함. 수치 라벨은 실제 값(fracLabel)을 그대로 표시.
 function visualBrightness(r){ return 1 / r; }
@@ -175,13 +217,9 @@ function draw(){
   drawGlowSphere();
   drawReferenceCircles();
   drawObserverWedge();
-  drawOtherDirectionPatches(currentR);
-
-  for (let r = 1; r <= R_MAX; r++) {
-    if (r !== currentR) drawPatch(r, false);
-  }
-  drawPatch(currentR, true);
+  drawMainPatch(currentR);
   drawStar();
+  drawCalloutBox(currentR);
 }
 
 // 별빛이 사방으로 퍼져나가는 것을 표현하는 방사선 - 별에서 멀어질수록(밝기가 줄수록) 옅어짐
@@ -205,69 +243,83 @@ function drawOmniRays(){
   ctx.restore();
 }
 
-// 다른 방향에도 똑같이 별빛이 닿고 있다는 것을 보여주는 참고 관측 지점들
-// (오른쪽에 표시되는 메인 관측 지점과 동일한 방식으로 그려서 사방이 같다는 걸 보여줌)
-function drawOtherDirectionPatches(r){
+// 메인 관측 방향에 실제 크기로 표시되는 작은 패치 (구 표면 위, 그리드 없이 단순한 색 조각)
+function drawMainPatch(r){
+  const x = screenX(r), hs = halfSize(r);
   const pb = visualBrightness(r);
-  const radius = UNIT_R * r;
-  const hs = halfSize(r);
-  const angles = [70, 150, 230, 310]; // 오른쪽(0도, 메인 관측 지점)을 피한 다른 방향들
-  ctx.save();
-  angles.forEach(deg => {
-    const rad = deg * Math.PI / 180;
-    const cx = STAR.x + Math.cos(rad) * radius;
-    const cy = STAR.y + Math.sin(rad) * radius;
-
-    ctx.strokeStyle = 'rgba(255,255,255,0.14)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(STAR.x, STAR.y);
-    ctx.lineTo(cx, cy);
-    ctx.stroke();
-
-    drawGlowPatch(cx, cy, hs, r, pb, false);
-  });
-  ctx.restore();
-}
-
-// 반짝이는 관측 패치(격자 + 테두리)를 그리는 공용 함수 - 메인 방향과 다른 방향 모두에 사용
-function drawGlowPatch(cx, cy, hs, r, pb, showLabel){
-  ctx.save();
   const fillRgb = mixColor(pb, [255,193,80], [80,72,76]);
   const edgeRgb = mixColor(pb, [255,213,79], [130,115,110]);
-
+  ctx.save();
   ctx.shadowColor = `rgba(${fillRgb},0.85)`;
   ctx.shadowBlur = 18 * pb + 2;
   ctx.fillStyle = `rgba(${fillRgb},${0.18 + 0.6 * pb})`;
-  ctx.fillRect(cx - hs, cy - hs, hs * 2, hs * 2);
+  ctx.fillRect(x - hs, STAR.y - hs, hs * 2, hs * 2);
   ctx.shadowBlur = 0;
-
-  ctx.strokeStyle = `rgba(255,255,255,${0.18 + 0.32 * pb})`;
-  ctx.lineWidth = 1;
-  const cell = (hs * 2) / r;
-  for (let i = 1; i < r; i++) {
-    ctx.beginPath();
-    ctx.moveTo(cx - hs + i * cell, cy - hs);
-    ctx.lineTo(cx - hs + i * cell, cy + hs);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(cx - hs, cy - hs + i * cell);
-    ctx.lineTo(cx + hs, cy - hs + i * cell);
-    ctx.stroke();
-  }
   ctx.strokeStyle = `rgb(${edgeRgb})`;
   ctx.lineWidth = 2.2;
-  ctx.strokeRect(cx - hs, cy - hs, hs * 2, hs * 2);
+  ctx.strokeRect(x - hs, STAR.y - hs, hs * 2, hs * 2);
+  ctx.fillStyle = `rgb(${edgeRgb})`;
+  ctx.font = 'bold 17px Segoe UI';
+  ctx.textAlign = 'center';
+  const n = snap(r);
+  ctx.fillText(n === 1 ? '거리 r' : `거리 ${n}r`, x, STAR.y - hs - 12);
+  ctx.restore();
+}
 
-  if (showLabel) {
-    ctx.fillStyle = `rgb(${edgeRgb})`;
-    ctx.font = 'bold 19px Segoe UI';
-    ctx.textAlign = 'center';
-    ctx.fillText(r === 1 ? '거리 r' : `거리 ${r}r`, cx, cy - hs - 36);
-    ctx.fillStyle = `rgb(${mixColor(pb, [255,138,101], [150,120,110])})`;
-    ctx.font = 'bold 21px Segoe UI';
-    ctx.fillText(fracLabel(r), cx, cy - hs - 12);
+// 이미지1처럼 작은 패치를 점선으로 확대해 격자 개수를 보여주는 콜아웃.
+// 정사각형 자체의 한 변 길이가 r에 정비례하도록(고정 여백 없이) 그려서
+// "길이 2배/3배 -> 넓이 4배/9배"가 눈으로 봐도 그 비율 그대로 느껴지게 함.
+function drawCalloutBox(r){
+  const hs = halfSize(r);
+  const px = screenX(r) + hs; // 패치 오른쪽 모서리 x
+  const { x0, y0, gridSize } = calloutGeom(r);
+  const gx = x0, gy = y0;
+
+  ctx.save();
+  // 점선 인출선: 패치의 오른쪽 위/아래 모서리 -> 정사각형의 왼쪽 위/아래 모서리
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(px, STAR.y - hs);
+  ctx.lineTo(gx, gy);
+  ctx.moveTo(px, STAR.y + hs);
+  ctx.lineTo(gx, gy + gridSize);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 격자 - 칸 개수(n×n)는 정수로 스냅하되, 정사각형 전체 크기는 r에 따라 연속적으로 커짐(변 길이 = r배)
+  // 밝기가 줄어드는 것도 함께 보여주기 위해 칸 색도 거리에 따라 어두워지게 함
+  const n = snap(r);
+  const pb = visualBrightness(r);
+  const gridFillRgb = mixColor(pb, [243,223,160], [92,84,70]);
+  ctx.fillStyle = `rgb(${gridFillRgb})`;
+  ctx.fillRect(gx, gy, gridSize, gridSize);
+  ctx.strokeStyle = 'rgba(20,16,8,0.55)';
+  ctx.lineWidth = 1.5;
+  const cell = gridSize / n;
+  for (let i = 1; i < n; i++) {
+    ctx.beginPath();
+    ctx.moveTo(gx + i * cell, gy);
+    ctx.lineTo(gx + i * cell, gy + gridSize);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(gx, gy + i * cell);
+    ctx.lineTo(gx + gridSize, gy + i * cell);
+    ctx.stroke();
   }
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(gx, gy, gridSize, gridSize);
+
+  // 캡션 (정사각형 크기에는 포함되지 않는, 바깥쪽 라벨)
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#fdf6e3';
+  ctx.font = 'bold 17px Segoe UI';
+  ctx.fillText(`격자 ${areaMul(n)}개`, gx + gridSize / 2, gy + gridSize + CALLOUT_CAPTION_GAP + 14);
+  ctx.fillStyle = '#FF8A65';
+  ctx.font = 'bold 15px Segoe UI';
+  ctx.fillText(`(밝기 ${fracLabel(n)})`, gx + gridSize / 2, gy + gridSize + CALLOUT_CAPTION_GAP + 34);
   ctx.restore();
 }
 
@@ -290,6 +342,37 @@ function drawShadedSphere(cx, cy, r, rgb, alpha){
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.stroke();
+
+  drawWireGlobe(cx, cy, r, alpha);
+  ctx.restore();
+}
+
+// 지구본처럼 위도·경도선을 그려서 구가 입체적으로 보이도록 하는 와이어프레임
+function drawWireGlobe(cx, cy, r, alpha){
+  if (r < 10) return;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.strokeStyle = `rgba(255,255,255,${0.28 * alpha})`;
+  ctx.lineWidth = 1;
+
+  // 경도선(세로 타원) - 정면에서 옆으로 갈수록 폭이 좁아짐
+  [25, 50, 75, 90].forEach(deg => {
+    const rx = Math.max(r * Math.cos(deg * Math.PI / 180), 0.6);
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, r, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  });
+
+  // 위도선(가로 타원) - 적도에서 극으로 갈수록 짧아지고, 살짝 눌린 타원으로 표현
+  [-0.6, -0.28, 0, 0.28, 0.6].forEach(f => {
+    const dy = r * f;
+    const rx = r * Math.sqrt(Math.max(0, 1 - f * f));
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + dy, rx, rx * 0.22, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  });
   ctx.restore();
 }
 
@@ -331,27 +414,6 @@ function drawObserverWedge(){
   ctx.restore();
 }
 
-function drawPatch(r, active){
-  const x = screenX(r), hs = halfSize(r);
-  ctx.save();
-  if (active) {
-    drawGlowPatch(x, STAR.y, hs, r, visualBrightness(r), true);
-  } else {
-    ctx.globalAlpha = 0.32;
-    ctx.fillStyle = '#8a99ad';
-    ctx.fillRect(x - hs, STAR.y - hs, hs * 2, hs * 2);
-    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(x - hs, STAR.y - hs, hs * 2, hs * 2);
-    ctx.globalAlpha = 0.65;
-    ctx.fillStyle = '#9fb0c4';
-    ctx.font = '13px Segoe UI';
-    ctx.textAlign = 'center';
-    ctx.fillText(r === 1 ? 'r' : `${r}r`, x, STAR.y - hs - 8);
-  }
-  ctx.restore();
-}
-
 function drawStar(){
   ctx.save();
   const g = ctx.createRadialGradient(STAR.x, STAR.y, 0, STAR.x, STAR.y, 34);
@@ -370,11 +432,23 @@ function drawStar(){
 }
 
 function updateStats(){
-  document.getElementById('statDist').textContent = currentR === 1 ? '1r (기준)' : `${currentR}r`;
-  document.getElementById('statBright').textContent = fracLabel(currentR);
+  const r = snap(currentR);
+  document.getElementById('statDist').textContent = r === 1 ? '1r (기준)' : `${r}r`;
+  document.getElementById('statBright').textContent = fracLabel(r);
   document.querySelectorAll('.jump-btns button').forEach(b => {
-    b.classList.toggle('active', +b.dataset.r === currentR);
+    b.classList.toggle('active', +b.dataset.r === r);
   });
+
+  const areaLine = r === 1
+    ? `면적 = 4πr² <b class="area">(기준: 1배)</b>`
+    : `면적 = 4π(${r}r)² = ${4 * areaMul(r)}πr² <b class="area">(${areaMul(r)}배)</b>`;
+  document.getElementById('fAreaLine').innerHTML = areaLine;
+  document.getElementById('fBrightLine').textContent = fracLabel(r);
+
+  const summary = r === 1
+    ? '지금은 기준 거리(1r)예요. 슬라이더를 움직여 거리가 멀어지면 밝기가 어떻게 변하는지 확인해보세요!'
+    : `거리가 <b>${r}배</b>(${r}r) 멀어지면 빛이 퍼지는 면적은 <b>${areaMul(r)}배</b>로 넓어지고, 별의 밝기는 <b>${fracLabel(r)}</b>로 어두워집니다.`;
+  document.getElementById('summaryBox').innerHTML = summary;
 }
 
 function setR(r){
