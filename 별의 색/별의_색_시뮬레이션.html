@@ -465,16 +465,6 @@ function shadeColor(hex, percent){
 const PLACED_SIZE = 16;
 // 태양은 밤하늘 활동의 별이 아니라 황색 칸에 미리 채워두는 참고용 정보
 const SUN_RGB = kelvinToRGB(5772).join(',');
-function darkenRgb(rgbStr, percent){
-  const [r, g, b] = rgbStr.split(',').map(Number);
-  const clamp = v => Math.max(0, Math.min(255, Math.round(v)));
-  return `${clamp(r * (1 + percent))},${clamp(g * (1 + percent))},${clamp(b * (1 + percent))}`;
-}
-function makeGlowImage(rgb){
-  const dark = darkenRgb(rgb, -0.55);
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><rect width='300' height='300' fill='#050810'/><defs><radialGradient id='g' cx='38%' cy='32%'><stop offset='0%' stop-color='#fff'/><stop offset='45%' stop-color='rgb(${rgb})'/><stop offset='100%' stop-color='rgb(${dark})'/></radialGradient></defs><circle cx='150' cy='150' r='130' fill='url(#g)'/></svg>`;
-  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
-}
 const sunStarData = {
   name: '태양',
   constellation: '태양계의 중심별',
@@ -482,7 +472,7 @@ const sunStarData = {
   category: '황색',
   spectral: 'G2V (주계열성)',
   rgb: SUN_RGB,
-  img: makeGlowImage(SUN_RGB),
+  img: '태양.png',
 };
 
 const sortBins = document.getElementById('sortBins');
