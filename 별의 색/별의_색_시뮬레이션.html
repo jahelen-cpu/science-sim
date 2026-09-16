@@ -155,9 +155,6 @@ h1 { font-size: 34px; font-weight: 700; margin-bottom: 8px; text-shadow: 0 2px 1
 .bin.filled .bin-slot { border-style: solid; border-color: rgba(139,255,170,.4); }
 .bin.preset { background: rgba(255,213,79,.05); border-color: rgba(255,213,79,.25); }
 .bin.preset .bin-slot { border-style: solid; border-color: rgba(255,213,79,.3); }
-.preset-star { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.preset-dot { display: block; border-radius: 50%; }
-.preset-name { font-size: 13px; font-weight: 700; color: #dfeaf5; text-shadow: 0 1px 3px rgba(0,0,0,.9); }
 .bin.wrong-flash { animation: wrongFlash .4s ease; }
 @keyframes wrongFlash {
   0%, 100% { background: rgba(255,255,255,.03); }
@@ -468,6 +465,25 @@ function shadeColor(hex, percent){
 const PLACED_SIZE = 16;
 // 태양은 밤하늘 활동의 별이 아니라 황색 칸에 미리 채워두는 참고용 정보
 const SUN_RGB = kelvinToRGB(5772).join(',');
+function darkenRgb(rgbStr, percent){
+  const [r, g, b] = rgbStr.split(',').map(Number);
+  const clamp = v => Math.max(0, Math.min(255, Math.round(v)));
+  return `${clamp(r * (1 + percent))},${clamp(g * (1 + percent))},${clamp(b * (1 + percent))}`;
+}
+function makeGlowImage(rgb){
+  const dark = darkenRgb(rgb, -0.55);
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><rect width='300' height='300' fill='#050810'/><defs><radialGradient id='g' cx='38%' cy='32%'><stop offset='0%' stop-color='#fff'/><stop offset='45%' stop-color='rgb(${rgb})'/><stop offset='100%' stop-color='rgb(${dark})'/></radialGradient></defs><circle cx='150' cy='150' r='130' fill='url(#g)'/></svg>`;
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+const sunStarData = {
+  name: '태양',
+  constellation: '태양계의 중심별',
+  temp: 5772,
+  category: '황색',
+  spectral: 'G2V (주계열성)',
+  rgb: SUN_RGB,
+  img: makeGlowImage(SUN_RGB),
+};
 
 const sortBins = document.getElementById('sortBins');
 COLOR_BOARD.forEach(c => {
@@ -484,10 +500,19 @@ COLOR_BOARD.forEach(c => {
   slot.className = 'bin-slot';
   if (c.category === '황색') {
     bin.classList.add('preset');
-    slot.innerHTML = `<div class="preset-star">
-      <span class="preset-dot" style="width:${PLACED_SIZE}px;height:${PLACED_SIZE}px;background:radial-gradient(circle at 35% 30%, #fff 0%, rgb(${SUN_RGB}) 45%, rgba(${SUN_RGB},.2) 100%);box-shadow:0 0 6px rgba(${SUN_RGB},.9);"></span>
-      <span class="preset-name">태양</span>
-    </div>`;
+    const sunEl = document.createElement('div');
+    sunEl.className = 'real-star placed-star';
+    sunEl.style.position = 'relative';
+    sunEl.style.width = PLACED_SIZE + 'px';
+    sunEl.style.height = PLACED_SIZE + 'px';
+    sunEl.style.background = `radial-gradient(circle at 35% 30%, #fff 0%, rgb(${SUN_RGB}) 42%, rgba(${SUN_RGB},0.15) 100%)`;
+    sunEl.style.boxShadow = `0 0 6px rgba(${SUN_RGB},.9)`;
+    const sunLabel = document.createElement('span');
+    sunLabel.className = 'star-label';
+    sunLabel.textContent = '태양';
+    sunEl.appendChild(sunLabel);
+    sunEl.addEventListener('click', () => openModal(sunStarData, { currentTarget: sunEl }, true));
+    slot.appendChild(sunEl);
   } else {
     slot.innerHTML = '<span class="bin-hint">여기에 드래그</span>';
   }
