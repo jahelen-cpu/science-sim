@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>별의 색과 표면온도</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  position: relative;
+  background: radial-gradient(ellipse at 50% -10%, #16233a 0%, #0a1220 55%, #050810 100%);
+  min-height: 100vh;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 20px 16px 40px; color: #eee; overflow-x: hidden;
+}
+body::before{
+  content:''; position: fixed; inset: 0; pointer-events: none; z-index: -1;
+  background-image:
+    radial-gradient(1.4px 1.4px at 12% 22%, rgba(255,255,255,.5) 1px, transparent 1px),
+    radial-gradient(1px 1px at 78% 15%, rgba(255,255,255,.35) 1px, transparent 1px),
+    radial-gradient(1.6px 1.6px at 35% 78%, rgba(255,255,255,.45) 1px, transparent 1px),
+    radial-gradient(1px 1px at 92% 55%, rgba(255,255,255,.35) 1px, transparent 1px),
+    radial-gradient(1.2px 1.2px at 58% 38%, rgba(255,255,255,.3) 1px, transparent 1px),
+    radial-gradient(1.6px 1.6px at 8% 62%, rgba(255,255,255,.45) 1px, transparent 1px),
+    radial-gradient(1px 1px at 88% 85%, rgba(255,255,255,.35) 1px, transparent 1px),
+    radial-gradient(1px 1px at 45% 92%, rgba(255,255,255,.3) 1px, transparent 1px);
+  background-repeat: no-repeat;
+}
+
+h1 { font-size: 34px; font-weight: 700; margin-bottom: 8px; text-shadow: 0 2px 10px rgba(0,0,0,.6); text-align: center; }
+.guide { font-size: 19px; font-weight: 600; color: #a9c6e8; margin-bottom: 4px; text-align: center; max-width: 820px; line-height: 1.55; }
+.subnote { font-size: 14px; color: #5f7797; margin-bottom: 20px; text-align: center; max-width: 760px; }
+
+.sky-frame {
+  position: relative; width: 100%; max-width: 1100px; margin-top: 8px;
+  border-radius: 18px; box-shadow: 0 10px 44px rgba(0,0,0,.6); overflow: hidden;
+}
+.sky-world { position: relative; width: 100%; aspect-ratio: 1100 / 400; }
+.sky-world canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
+
+.real-star {
+  position: absolute; border-radius: 50%; cursor: pointer; touch-action: none;
+  animation: starPulse 2.6s ease-in-out infinite alternate;
+  transition: transform .18s ease;
+  z-index: 3;
+}
+.real-star:hover { transform: scale(1.3); z-index: 4; }
+.real-star.unlocked { cursor: grab; }
+.real-star.dragging-star { cursor: grabbing; z-index: 200; transition: none; }
+.real-star.placed-star { position: relative; cursor: pointer; animation: none; }
+.real-star.placed-star:hover { transform: none; }
+@keyframes starPulse { from { filter: brightness(1); } to { filter: brightness(1.25); } }
+.ghost-star {
+  position: absolute; border-radius: 50%; pointer-events: none;
+  border: 1.5px dashed rgba(255,255,255,.25); background: rgba(255,255,255,.03);
+}
+.star-label {
+  position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  margin-top: 4px; white-space: nowrap; color: #dfeaf5; font-size: 13px;
+  font-weight: 700; text-shadow: 0 1px 3px rgba(0,0,0,.9); pointer-events: none;
+}
+
+/* modal */
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(3,6,14,.78);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .35s ease; z-index: 50;
+  padding: 20px;
+}
+.modal-backdrop.open { opacity: 1; pointer-events: auto; }
+.modal-card {
+  position: relative; width: min(640px, 100%);
+  background: linear-gradient(180deg, #101a2e, #060b16);
+  border: 1px solid rgba(255,255,255,.12); border-radius: 22px;
+  box-shadow: 0 24px 70px rgba(0,0,0,.65);
+  padding: 28px; display: flex; gap: 26px; align-items: center;
+  transform: scale(.05); transform-origin: var(--ox, 50%) var(--oy, 50%);
+  transition: transform .55s cubic-bezier(.2,.9,.25,1);
+}
+.modal-backdrop.open .modal-card { transform: scale(1); }
+.modal-close {
+  position: absolute; top: 14px; right: 14px; width: 32px; height: 32px;
+  border-radius: 50%; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.06);
+  color: #cfe4f2; font-size: 16px; cursor: pointer; line-height: 1;
+}
+.modal-close:hover { background: rgba(255,255,255,.16); }
+.modal-visual {
+  position: relative; width: 220px; height: 220px; flex: none;
+  border-radius: 18px; overflow: hidden; background: #000;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.08);
+}
+.modal-glow { position: absolute; inset: 0; transition: opacity .5s ease .15s; }
+.modal-visual img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;
+  opacity: 0; transition: opacity .6s ease .2s; background: #000;
+}
+.modal-backdrop.open .modal-visual img { opacity: 1; }
+.modal-backdrop.open .modal-glow { opacity: 0; }
+
+.modal-info { flex: 1; min-width: 0; }
+.modal-info h2 { font-size: 26px; color: #FFD54F; margin-bottom: 2px; }
+.modal-const { font-size: 14px; color: #7fa3bd; font-weight: 700; margin-bottom: 14px; }
+.info-row { display: flex; align-items: center; gap: 8px; font-size: 15px; padding: 6px 0; border-top: 1px solid rgba(255,255,255,.08); }
+.info-row:first-of-type { border-top: none; }
+.info-label { color: #7fa3bd; font-weight: 700; width: 72px; flex: none; }
+.info-value { color: #eee; font-weight: 600; }
+.color-swatch { width: 15px; height: 15px; border-radius: 50%; border: 1px solid rgba(255,255,255,.4); }
+
+.reveal-box { position: relative; display: inline-flex; align-items: center; gap: 8px; }
+.reveal-cover {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;
+  background: rgba(255,255,255,.08); border: 1px dashed rgba(255,213,79,.5); border-radius: 8px;
+  padding: 5px 14px; color: #FFD54F; font-weight: 700; font-size: 13px; transition: background .15s;
+}
+.reveal-cover:hover { background: rgba(255,213,79,.15); }
+.reveal-content { display: none; align-items: center; gap: 8px; }
+.reveal-box.revealed .reveal-cover { display: none; }
+.reveal-box.revealed .reveal-content { display: inline-flex; }
+
+@media (max-width: 560px) {
+  .modal-card { flex-direction: column; padding: 22px; }
+  .modal-visual { width: 100%; height: 180px; }
+}
+
+/* 별 색깔 정리 활동 */
+.sort-section {
+  width: 100%; max-width: 1100px; margin-top: 14px;
+  background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,.1);
+  border-radius: 18px; padding: 24px 26px 30px; box-shadow: 0 10px 34px rgba(0,0,0,.4);
+}
+.sort-title { font-size: 22px; color: #FFD54F; text-align: center; margin-bottom: 6px; }
+.sort-guide { font-size: 14px; color: #a9c6e8; text-align: center; margin-bottom: 22px; line-height: 1.5; }
+
+.sort-bins { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 26px; }
+.bin {
+  width: 136px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 12px 8px 14px; border-radius: 14px; border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.03); transition: background .25s, border-color .25s;
+}
+.bin-sphere {
+  width: 66px; height: 66px; border-radius: 50%; flex: none;
+  box-shadow: inset -6px -8px 14px rgba(0,0,0,.25), 0 4px 14px rgba(0,0,0,.35);
+}
+.bin-label { font-size: 13px; font-weight: 700; color: #dfeaf5; }
+.bin-slot {
+  width: 100%; min-height: 64px; border-radius: 10px;
+  border: 1.5px dashed rgba(255,255,255,.22);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: rgba(255,255,255,.35);
+}
+.bin-hint { pointer-events: none; }
+.bin.filled { background: rgba(139,255,170,.08); border-color: rgba(139,255,170,.35); }
+.bin.filled .bin-slot { border-style: solid; border-color: rgba(139,255,170,.4); }
+.bin.preset { background: rgba(255,213,79,.05); border-color: rgba(255,213,79,.25); }
+.bin.preset .bin-slot { border-style: solid; border-color: rgba(255,213,79,.3); }
+.preset-star { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.preset-dot { display: block; border-radius: 50%; }
+.preset-name { font-size: 13px; font-weight: 700; color: #dfeaf5; text-shadow: 0 1px 3px rgba(0,0,0,.9); }
+.bin.wrong-flash { animation: wrongFlash .4s ease; }
+@keyframes wrongFlash {
+  0%, 100% { background: rgba(255,255,255,.03); }
+  30% { background: rgba(255,90,90,.22); }
+}
+
+.sort-badge {
+  margin-top: 22px; text-align: center; font-size: 18px; font-weight: 800; color: #FFD54F;
+  background: rgba(255,213,79,.12); border: 1px solid rgba(255,213,79,.4); border-radius: 14px;
+  padding: 16px; opacity: 0; transform: translateY(10px) scale(.97);
+  pointer-events: none; transition: opacity .4s ease, transform .4s ease;
+}
+.sort-badge.show { opacity: 1; transform: translateY(0) scale(1); }
+</style>
+</head>
+<body>
+<h1>🌌 별의 색과 표면온도</h1>
+<p class="guide">별은 표면 온도에 따라 다른 색으로 빛나요. 온도가 아주 높으면 푸른빛을, 온도가 낮으면 붉은빛을 띠죠. 별자리 속 이름이 쓰인 별을 클릭해 실제 모습과 표면온도를 확인해보세요.</p>
+<p class="subnote" style="margin-bottom:20px;">아래로 스크롤하면 별을 색깔별로 정리하는 활동도 있어요. 별을 한 번 클릭한 뒤 그대로 끌어서 옮길 수 있어요.</p>
+<p class="subnote">※ 별의 위치와 별자리 모양은 이해를 돕기 위해 단순화하여 표현했습니다.</p>
+
+<div class="sky-frame">
+  <div class="sky-world" id="skyWorld">
+    <canvas id="bgCanvas"></canvas>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal-card" id="modalCard">
+    <button class="modal-close" id="modalClose">✕</button>
+    <div class="modal-visual">
+      <div class="modal-glow" id="modalGlow"></div>
+      <img id="modalImg" src="" alt="">
+    </div>
+    <div class="modal-info">
+      <h2 id="modalName"></h2>
+      <div class="modal-const" id="modalConst"></div>
+      <div class="info-row">
+        <span class="info-label">표면온도</span>
+        <span class="reveal-box" id="revealTemp">
+          <span class="reveal-cover">🔒 클릭해서 확인</span>
+          <span class="reveal-content"><span class="info-value" id="modalTemp"></span></span>
+        </span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">색</span>
+        <span class="reveal-box" id="revealColor">
+          <span class="reveal-cover">🔒 클릭해서 확인</span>
+          <span class="reveal-content"><span class="info-value" id="modalColor"></span><span class="color-swatch" id="modalSwatch"></span></span>
+        </span>
+      </div>
+      <div class="info-row"><span class="info-label">분광형</span><span class="info-value" id="modalSpectral"></span></div>
+    </div>
+  </div>
+</div>
+
+<div class="sort-section">
+  <h2 class="sort-title">🎯 별을 색깔대로 정리해보자</h2>
+  <p class="sort-guide">별을 한 번 클릭해 확인하면 드래그할 수 있게 돼요. 그 별을 직접 끌어서 알맞은 색깔 칸에 놓아보세요.</p>
+  <div class="sort-bins" id="sortBins"></div>
+  <div class="sort-badge" id="sortBadge">🏅 <span>모든 별을 색깔별로 완벽하게 정리했어요!</span></div>
+</div>
+
+<script>
+const WORLD_W = 1100, WORLD_H = 480;
+
+// ---------- 별 데이터 (별자리와 별.png 표 기준) ----------
+// category: 정리보드.png의 색깔 분류칸 기준 (별 색깔 정리 활동의 정답)
+const starsData = {
+  '리겔':      { temp: 12100, spectral: 'B8Ia (청색초거성)', img: '리겔.png',      size: 20, category: '청백색' },
+  '알니타크':  { temp: 29500, spectral: 'O9.5Ib (청색초거성)', img: '알니타크.png',  size: 22, category: '청색' },
+  '베텔게우스':{ temp: 3500,  spectral: 'M1-2Ia (적색초거성)', img: '베텔게우스.png',size: 38, category: '적색' },
+  '알데바란':  { temp: 3900,  spectral: 'K5III (적색거성)',   img: '알데바란.png',  size: 17, category: '주황색' },
+  '시리우스':  { temp: 9900,  spectral: 'A1V',                img: '시리우스.png',  size: 15, category: '흰색' },
+  '북극성':    { temp: 6000,  spectral: 'F7Ib (초거성)',       img: '북극성.png',    size: 16, category: '황백색' },
+};
+
+function kelvinToRGB(kelvin){
+  let temp = kelvin / 100, r, g, b;
+  if (temp <= 66) {
+    r = 255;
+    g = 99.4708025861 * Math.log(temp) - 161.1195681661;
+    b = temp <= 19 ? 0 : 138.5177312231 * Math.log(temp - 10) - 305.0447927307;
+  } else {
+    r = 329.698727446 * Math.pow(temp - 60, -0.1332047592);
+    g = 288.1221695283 * Math.pow(temp - 60, -0.0755148492);
+    b = 255;
+  }
+  const clamp = x => Math.max(0, Math.min(255, Math.round(x)));
+  return [clamp(r), clamp(g), clamp(b)];
+}
+Object.entries(starsData).forEach(([name, s]) => {
+  s.name = name;
+  s.rgb = kelvinToRGB(s.temp).join(',');
+});
+
+// ---------- 별자리 도식 (스틱피겨, 로컬 0~1 좌표) ----------
+const constellations = [
+  {
+    name: '오리온자리', anchor: { x: 40, y: 60 }, size: { w: 170, h: 220 },
+    points: [
+      { id: 'bellatrix', x: 0.10, y: 0.04 },
+      { id: 'betelgeuse', x: 0.88, y: 0.06, star: '베텔게우스' },
+      { id: 'mintaka', x: 0.22, y: 0.45 },
+      { id: 'alnilam', x: 0.48, y: 0.52 },
+      { id: 'alnitak', x: 0.72, y: 0.58, star: '알니타크' },
+      { id: 'saiph', x: 0.16, y: 0.96 },
+      { id: 'rigel', x: 0.84, y: 0.92, star: '리겔' },
+    ],
+    lines: [['bellatrix','mintaka'],['betelgeuse','alnilam'],['mintaka','alnilam'],['alnilam','alnitak'],['mintaka','saiph'],['alnitak','rigel']],
+  },
+  {
+    name: '황소자리', anchor: { x: 300, y: 150 }, size: { w: 150, h: 170 },
+    points: [
+      { id: 'horn1', x: 0.04, y: 0.0 },
+      { id: 'horn2', x: 0.96, y: 0.10 },
+      { id: 'vleft', x: 0.30, y: 0.52 },
+      { id: 'aldebaran', x: 0.56, y: 0.64, star: '알데바란' },
+      { id: 'vright', x: 0.80, y: 0.42 },
+    ],
+    lines: [['horn1','vleft'],['vleft','aldebaran'],['aldebaran','vright'],['vright','horn2']],
+  },
+  {
+    name: '큰개자리', anchor: { x: 550, y: 60 }, size: { w: 150, h: 200 },
+    points: [
+      { id: 'head', x: 0.5, y: 0.0 },
+      { id: 'sirius', x: 0.5, y: 0.32, star: '시리우스' },
+      { id: 'legL', x: 0.24, y: 0.64 },
+      { id: 'legR', x: 0.74, y: 0.60 },
+      { id: 'back', x: 0.20, y: 0.36 },
+      { id: 'tail', x: 0.90, y: 0.42 },
+    ],
+    lines: [['head','sirius'],['sirius','legL'],['sirius','legR'],['sirius','back'],['back','tail']],
+  },
+  {
+    name: '작은곰자리', anchor: { x: 830, y: 140 }, size: { w: 180, h: 210 },
+    points: [
+      { id: 'polaris', x: 0.08, y: 0.08, star: '북극성' },
+      { id: 'h2', x: 0.28, y: 0.24 },
+      { id: 'h3', x: 0.46, y: 0.34 },
+      { id: 'bowl1', x: 0.62, y: 0.42 },
+      { id: 'bowl2', x: 0.88, y: 0.32 },
+      { id: 'bowl3', x: 0.92, y: 0.58 },
+      { id: 'bowl4', x: 0.66, y: 0.62 },
+    ],
+    lines: [['polaris','h2'],['h2','h3'],['h3','bowl1'],['bowl1','bowl2'],['bowl2','bowl3'],['bowl3','bowl4'],['bowl4','bowl1']],
+  },
+];
+
+constellations.forEach(c => {
+  c.points.forEach(p => {
+    p.px = c.anchor.x + p.x * c.size.w;
+    p.py = c.anchor.y + p.y * c.size.h;
+    if (p.star) Object.assign(p, starsData[p.star], { px: p.px, py: p.py });
+  });
+});
+
+// ---------- 캔버스: 배경 별 + 별자리 선 ----------
+const canvas = document.getElementById('bgCanvas');
+canvas.width = WORLD_W; canvas.height = WORLD_H;
+const ctx = canvas.getContext('2d');
+
+const bgStars = [];
+for (let i = 0; i < 240; i++) {
+  bgStars.push({
+    x: Math.random() * WORLD_W, y: Math.random() * WORLD_H,
+    r: Math.random() * 1.3 + 0.3, baseA: Math.random() * 0.5 + 0.25, a: 0,
+  });
+}
+bgStars.forEach(s => s.a = s.baseA);
+
+function draw(){
+  const bg = ctx.createLinearGradient(0, 0, 0, WORLD_H);
+  bg.addColorStop(0, '#0e1728');
+  bg.addColorStop(1, '#050810');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+
+  ctx.save();
+  bgStars.forEach(s => {
+    ctx.globalAlpha = s.a;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.restore();
+
+  constellations.forEach(c => {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(180,200,255,0.28)';
+    ctx.lineWidth = 1.3;
+    c.lines.forEach(([a, b]) => {
+      const pa = c.points.find(p => p.id === a), pb = c.points.find(p => p.id === b);
+      ctx.beginPath();
+      ctx.moveTo(pa.px, pa.py);
+      ctx.lineTo(pb.px, pb.py);
+      ctx.stroke();
+    });
+    c.points.forEach(p => {
+      if (p.star) return;
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.shadowColor = 'rgba(255,255,255,0.6)';
+      ctx.shadowBlur = 3;
+      ctx.beginPath();
+      ctx.arc(p.px, p.py, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+    const topY = Math.min(...c.points.map(p => p.py));
+    const midX = c.anchor.x + c.size.w / 2;
+    ctx.fillStyle = 'rgba(200,220,255,0.55)';
+    ctx.font = 'bold 14px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.fillText(c.name, midX, topY - 12);
+    ctx.restore();
+  });
+}
+draw();
+
+setInterval(() => {
+  bgStars.forEach(s => { if (Math.random() < 0.35) s.a = s.baseA * (0.5 + Math.random() * 0.8); });
+  draw();
+}, 1800);
+
+// ---------- 실제 별 DOM 요소 ----------
+const world = document.getElementById('skyWorld');
+constellations.forEach(c => {
+  c.points.forEach(p => {
+    if (!p.star) return;
+    const el = document.createElement('div');
+    el.className = 'real-star';
+    const size = p.size;
+    el.style.width = size + 'px';
+    el.style.height = size + 'px';
+    el.style.left = `calc(${(p.px / WORLD_W * 100).toFixed(2)}% - ${size / 2}px)`;
+    el.style.top = `calc(${(p.py / WORLD_H * 100).toFixed(2)}% - ${size / 2}px)`;
+    el.style.background = `radial-gradient(circle at 35% 30%, #fff 0%, rgb(${p.rgb}) 42%, rgba(${p.rgb},0.15) 100%)`;
+    el.style.boxShadow = `0 0 ${size * 1.1}px rgba(${p.rgb},0.85), 0 0 ${size * 2.4}px rgba(${p.rgb},0.35)`;
+    el.style.animationDelay = (Math.random() * 2).toFixed(2) + 's';
+    const label = document.createElement('span');
+    label.className = 'star-label';
+    label.textContent = p.name;
+    el.appendChild(label);
+    attachStarInteraction(el, p);
+    world.appendChild(el);
+  });
+});
+
+// ---------- 별 확대 모달 ----------
+const modalBackdrop = document.getElementById('modalBackdrop');
+const modalCard = document.getElementById('modalCard');
+const modalGlow = document.getElementById('modalGlow');
+const modalImg = document.getElementById('modalImg');
+const revealTemp = document.getElementById('revealTemp');
+const revealColor = document.getElementById('revealColor');
+
+function openModal(star, evt, revealed){
+  const rect = evt.currentTarget.getBoundingClientRect();
+  modalCard.style.setProperty('--ox', ((rect.left + rect.width / 2) / window.innerWidth * 100) + '%');
+  modalCard.style.setProperty('--oy', ((rect.top + rect.height / 2) / window.innerHeight * 100) + '%');
+
+  modalGlow.style.background = `radial-gradient(circle at 40% 35%, #fff 0%, rgb(${star.rgb}) 35%, rgba(${star.rgb},0.25) 75%, rgba(0,0,0,0) 100%)`;
+  modalImg.src = star.img;
+  modalImg.alt = star.name;
+  document.getElementById('modalName').textContent = star.name;
+  document.getElementById('modalConst').textContent = star.constellation || findConstellation(star.name);
+  document.getElementById('modalTemp').textContent = `약 ${star.temp.toLocaleString()} K`;
+  document.getElementById('modalColor').textContent = star.category;
+  document.getElementById('modalSwatch').style.background = `rgb(${star.rgb})`;
+  document.getElementById('modalSpectral').textContent = star.spectral;
+
+  revealTemp.classList.toggle('revealed', !!revealed);
+  revealColor.classList.toggle('revealed', !!revealed);
+
+  modalBackdrop.classList.add('open');
+}
+revealTemp.querySelector('.reveal-cover').addEventListener('click', () => revealTemp.classList.add('revealed'));
+revealColor.querySelector('.reveal-cover').addEventListener('click', () => revealColor.classList.add('revealed'));
+function findConstellation(name){
+  const c = constellations.find(c => c.points.some(p => p.star === name));
+  return c ? c.name : '';
+}
+function closeModal(){ modalBackdrop.classList.remove('open'); }
+document.getElementById('modalClose').addEventListener('click', closeModal);
+modalBackdrop.addEventListener('click', e => { if (e.target === modalBackdrop) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ---------- 별 색깔 정리 활동 (정리보드.png 기준) ----------
+const COLOR_BOARD = [
+  { category: '청색',   hex: '#0f97d6' },
+  { category: '청백색', hex: '#39c0e6' },
+  { category: '흰색',   hex: '#dbe8f0' },
+  { category: '황백색', hex: '#dedb9e' },
+  { category: '황색',   hex: '#f6c945' },
+  { category: '주황색', hex: '#f0904a' },
+  { category: '적색',   hex: '#dd4f3d' },
+];
+function shadeColor(hex, percent){
+  const num = parseInt(hex.slice(1), 16);
+  const clamp = v => Math.max(0, Math.min(255, Math.round(v)));
+  const r = clamp((num >> 16) * (1 + percent));
+  const g = clamp(((num >> 8) & 0xFF) * (1 + percent));
+  const b = clamp((num & 0xFF) * (1 + percent));
+  return `rgb(${r},${g},${b})`;
+}
+
+const PLACED_SIZE = 16;
+// 태양은 밤하늘 활동의 별이 아니라 황색 칸에 미리 채워두는 참고용 정보
+const SUN_RGB = kelvinToRGB(5772).join(',');
+
+const sortBins = document.getElementById('sortBins');
+COLOR_BOARD.forEach(c => {
+  const bin = document.createElement('div');
+  bin.className = 'bin';
+  bin.dataset.category = c.category;
+  const sphere = document.createElement('div');
+  sphere.className = 'bin-sphere';
+  sphere.style.background = `radial-gradient(circle at 32% 28%, #fff 0%, ${c.hex} 45%, ${shadeColor(c.hex, -0.35)} 100%)`;
+  const label = document.createElement('div');
+  label.className = 'bin-label';
+  label.textContent = c.category;
+  const slot = document.createElement('div');
+  slot.className = 'bin-slot';
+  if (c.category === '황색') {
+    bin.classList.add('preset');
+    slot.innerHTML = `<div class="preset-star">
+      <span class="preset-dot" style="width:${PLACED_SIZE}px;height:${PLACED_SIZE}px;background:radial-gradient(circle at 35% 30%, #fff 0%, rgb(${SUN_RGB}) 45%, rgba(${SUN_RGB},.2) 100%);box-shadow:0 0 6px rgba(${SUN_RGB},.9);"></span>
+      <span class="preset-name">태양</span>
+    </div>`;
+  } else {
+    slot.innerHTML = '<span class="bin-hint">여기에 드래그</span>';
+  }
+  bin.append(sphere, label, slot);
+  sortBins.appendChild(bin);
+});
+
+const sortBadge = document.getElementById('sortBadge');
+const TOTAL_STARS = Object.keys(starsData).length;
+const placedStars = new Set();
+
+// 별을 한 번 클릭(=거의 움직이지 않고 뗌)하면 모달이 열리고, 그 이후부터는
+// 같은 별을 눌러서 끌면(드래그) 아래 색깔 칸으로 옮길 수 있음
+function attachStarInteraction(el, p){
+  const originalLeft = el.style.left;
+  const originalTop = el.style.top;
+  let viewed = false;
+  let placed = false;
+
+  el.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    const startX = e.clientX, startY = e.clientY;
+    const rect = el.getBoundingClientRect();
+    const offsetX = e.clientX - rect.left, offsetY = e.clientY - rect.top;
+    let dragging = false;
+    el.setPointerCapture(e.pointerId);
+
+    function onMove(ev){
+      const dx = ev.clientX - startX, dy = ev.clientY - startY;
+      if (!dragging && viewed && !placed && Math.hypot(dx, dy) > 6) {
+        dragging = true;
+        el.classList.add('dragging-star');
+        el.style.position = 'fixed';
+        el.style.left = rect.left + 'px';
+        el.style.top = rect.top + 'px';
+        el.style.animation = 'none';
+      }
+      if (dragging) {
+        el.style.left = (ev.clientX - offsetX) + 'px';
+        el.style.top = (ev.clientY - offsetY) + 'px';
+      }
+    }
+
+    function onUp(ev){
+      el.removeEventListener('pointermove', onMove);
+      el.removeEventListener('pointerup', onUp);
+
+      if (!dragging) {
+        // 드래그가 아니라 클릭 -> 정보 모달 열기 + 드래그 잠금 해제
+        // 이미 색깔 칸에 정리된 별이라면(=검증 끝난 별) 온도/색을 바로 보여줌
+        if (!viewed) { viewed = true; el.classList.add('unlocked'); }
+        openModal(p, { currentTarget: el }, placed);
+        return;
+      }
+
+      el.classList.remove('dragging-star');
+      el.style.pointerEvents = 'none';
+      const target = document.elementFromPoint(ev.clientX, ev.clientY);
+      el.style.pointerEvents = '';
+      const bin = target ? target.closest('.bin') : null;
+
+      if (bin && bin.dataset.category === p.category) {
+        el.style.position = 'relative';
+        el.style.left = ''; el.style.top = ''; el.style.animation = '';
+        el.style.width = PLACED_SIZE + 'px';
+        el.style.height = PLACED_SIZE + 'px';
+        el.style.boxShadow = `0 0 6px rgba(${p.rgb},.9)`;
+        const slot = bin.querySelector('.bin-slot');
+        const hint = slot.querySelector('.bin-hint');
+        if (hint) hint.style.display = 'none';
+        slot.appendChild(el);
+        el.classList.add('placed-star');
+        bin.classList.add('filled');
+        placed = true;
+        placedStars.add(p.name);
+
+        const ghost = document.createElement('div');
+        ghost.className = 'ghost-star';
+        ghost.style.width = p.size + 'px';
+        ghost.style.height = p.size + 'px';
+        ghost.style.left = originalLeft;
+        ghost.style.top = originalTop;
+        world.appendChild(ghost);
+
+        checkCompletion();
+      } else {
+        if (bin) { bin.classList.add('wrong-flash'); setTimeout(() => bin.classList.remove('wrong-flash'), 400); }
+        el.style.position = '';
+        el.style.left = originalLeft;
+        el.style.top = originalTop;
+        el.style.animation = '';
+      }
+    }
+
+    el.addEventListener('pointermove', onMove);
+    el.addEventListener('pointerup', onUp);
+  });
+}
+
+function checkCompletion(){
+  if (placedStars.size === TOTAL_STARS) sortBadge.classList.add('show');
+}
+</script>
+</body>
+</html>
